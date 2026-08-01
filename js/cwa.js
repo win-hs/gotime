@@ -56,7 +56,8 @@ const CWA = (function () {
 
   /* ---------------- 鄉鎮天氣 ---------------- */
 
-  const EL7 = ['天氣現象', '12小時降雨機率', '最高溫度', '最低溫度', '風速', '紫外線指數', '天氣預報綜合描述'];
+  const EL7 = ['天氣現象', '12小時降雨機率', '最高溫度', '最低溫度', '風速',
+    '紫外線指數', '最高體感溫度', '最低體感溫度', '天氣預報綜合描述'];
   const EL3 = ['天氣現象', '3小時降雨機率', '溫度', '風速', '天氣預報綜合描述'];
 
   /** 把 WeatherElement[] 依 StartTime 併成時段列（各要素段數不同，例如紫外線只有白天） */
@@ -87,6 +88,8 @@ const CWA = (function () {
       tMax: num(v.MaxTemperature),
       tMin: num(v.MinTemperature),
       temp: num(v.Temperature),
+      atMax: num(v.MaxApparentTemperature),
+      atMin: num(v.MinApparentTemperature),
       wind: num(v.WindSpeed),
       beaufort: v.BeaufortScale || null,
       uv: num(v.UVIndex),
@@ -121,5 +124,34 @@ const CWA = (function () {
     return { periods, granularity, all };
   }
 
-  return { tide, weather };
+  /**
+   * 把 1 週逐 12 小時的時段依日期歸整成「白天／晚上」，供多日總覽表使用。
+   * 白天＝06:00 起、晚上＝18:00 起（晚上時段跨到隔日 06:00，仍歸在起始日）。
+   * 首日常因當下時間已過而缺白天時段，故兩者皆可能為 null。
+   * @returns {Array<{date, day, night, uv, atMin, atMax}>}
+   */
+  function groupByDay(periods) {
+    const map = new Map();
+    for (const p of periods) {
+      if (!map.has(p.date)) map.set(p.date, { date: p.date, day: null, night: null, uv: null, atMin: null, atMax: null });
+      const g = map.get(p.date);
+      if (p.hhmm === '06:00') g.day = p; else if (p.hhmm === '18:00') g.night = p;
+      else if (!g.day) g.day = p;                       // 首日可能非整點起算
+      if (p.uv !== null && g.uv === null) g.uv = { v: p.uv, level: p.uvLevel };
+      for (const [k, v] of [['atMin', p.atMin], ['atMax', p.atMax]]) {
+        if (v === null) continue;
+        if (g[k] === null) g[k] = v;
+        else g[k] = k === 'atMin' ? Math.min(g[k], v) : Math.max(g[k], v);
+      }
+    }
+    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  /** 取某鄉鎮自 startDate 起 n 天的逐日總覽（僅打一次 1 週資料集） */
+  async function weatherDays(town, startDate, n) {
+    const all = await fetchWeather(town.ds7, town.name, EL7);
+    return groupByDay(all).filter((g) => g.date >= startDate).slice(0, n);
+  }
+
+  return { tide, weather, weatherDays, groupByDay };
 })();

@@ -19,6 +19,7 @@
       <button id="fav-add" class="icon" title="將目前位置加入常用">★ 加入</button>
       <button id="fav-del" class="icon" title="刪除選取的常用地點">刪除</button>
       <button id="share-btn" class="icon" title="複製這個位置與日期的連結">分享</button>
+      <button id="settings-btn" class="icon" title="選擇要顯示的項目">⚙ 顯示項目</button>
     </div>
   </div>
 </header>
@@ -32,8 +33,12 @@
       <div class="row" style="margin-top:8px">
         <span class="coord-label" id="coord-label">—</span>
       </div>
-      <form class="row" id="coord-form">
-        <input type="text" id="coord-input" placeholder="地名，或座標 23.97, 120.98">
+      <form class="row search-row" id="coord-form" autocomplete="off">
+        <div class="search-wrap">
+          <input type="text" id="coord-input" placeholder="地名、山名、地址，或座標 23.97, 120.98"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest">
+          <div class="suggest" id="suggest" role="listbox"></div>
+        </div>
         <button type="submit">搜尋</button>
         <button type="button" id="locate-btn" class="icon" title="使用目前位置">定位</button>
       </form>
@@ -48,6 +53,10 @@
         <button id="today-btn">今天</button>
         <span class="badge" id="today-badge">今天</span>
       </div>
+      <div class="row" id="range-row">
+        <span class="range-lbl">多日總覽</span>
+        <div class="seg" id="range-seg"></div>
+      </div>
       <div class="row" style="color:var(--muted);font-size:13px;margin-top:10px">
         點地圖任一處、拖曳圖釘，或搜尋地名／貼上座標即可切換位置。
         潮汐取最近的預報點（含漁港、海水浴場、潛點），天氣取最近鄉鎮。
@@ -56,27 +65,37 @@
   </div>
 
   <div class="cards">
-    <section class="card">
-      <h2>☀️ 太陽</h2>
+    <section class="card" id="card-sun">
+      <h2>☀️ 日出日落</h2>
       <div class="card-body" id="sun-body"></div>
     </section>
 
-    <section class="card">
-      <h2>🌙 月亮</h2>
+    <section class="card" id="card-moon">
+      <h2>🌙 月相</h2>
       <div class="card-body" id="moon-body"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="card-tide">
       <h2>🌊 潮汐</h2>
       <div class="card-body" id="tide-body"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="card-weather">
       <h2>⛅ 天氣</h2>
       <div class="card-body" id="weather-body"></div>
     </section>
 
-    <section class="card card-wide">
+    <section class="card card-wide" id="card-radar">
+      <h2>🌧️ 降雨與雷達回波</h2>
+      <div class="card-body" id="radar-body"></div>
+    </section>
+
+    <section class="card card-wide" id="card-multi">
+      <h2>📅 多日總覽</h2>
+      <div class="card-body" id="multi-body"></div>
+    </section>
+
+    <section class="card card-wide" id="card-plan">
       <h2>🎯 調查時段</h2>
       <div class="card-body" id="plan-body"></div>
     </section>
@@ -102,10 +121,13 @@
 <script src="lib/leaflet/leaflet.js"></script>
 <script src="lib/suncalc.js"></script>
 <script src="js/config.js"></script>
+<script src="js/settings.js"></script>
 <script src="js/moonpos.js"></script>
 <script src="js/astro.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/cwa.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/multiday.js"></script>
 <script src="js/plan.js"></script>
 <script src="js/map.js"></script>
 <script src="js/app.js"></script>

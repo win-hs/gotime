@@ -9,5 +9,9 @@ const CONFIG = {
   DEFAULT_LON: 120.9773,
   DEFAULT_ZOOM: 8,
 
+  // 地圖可視範圍限制在台灣（含澎湖 119.3、金門 118.2、馬祖 26.4、蘭嶼綠島 121.6）
+  BOUNDS: [[21.5, 118.0], [26.5, 122.5]],
+  MIN_ZOOM: 7,
+
   TZ: 'Asia/Taipei',
 };

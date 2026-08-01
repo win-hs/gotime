@@ -11,7 +11,6 @@ const Plan = (function () {
     { id: 'nauticalDawn', label: '航海曙光始' },
     { id: 'civilDawn',    label: '民用曙光始' },
     { id: 'sunrise',      label: '日出' },
-    { id: 'solarNoon',    label: '日中' },
     { id: 'sunset',       label: '日落' },
     { id: 'civilDusk',    label: '民用暮光終' },
     { id: 'nauticalDusk', label: '航海暮光終' },
@@ -68,7 +67,6 @@ const Plan = (function () {
       case 'nauticalDawn': return one(t.nauticalDawn);
       case 'civilDawn': return one(t.dawn);
       case 'sunrise': return one(t.sunrise);
-      case 'solarNoon': return one(t.solarNoon);
       case 'sunset': return one(t.sunset);
       case 'civilDusk': return one(t.dusk);
       case 'nauticalDusk': return one(t.nauticalDusk);

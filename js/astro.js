@@ -40,7 +40,6 @@ const Astro = (function () {
       { key: 'nauticalDawn', label: '航海曙光始', d: t.nauticalDawn, group: 'dawn' },
       { key: 'civilDawn', label: '民用曙光始', d: t.dawn, group: 'dawn' },
       { key: 'sunrise', label: '日出', d: t.sunrise, group: 'sun' },
-      { key: 'solarNoon', label: '日中（中天）', d: t.solarNoon, group: 'sun' },
       { key: 'sunset', label: '日落', d: t.sunset, group: 'sun' },
       { key: 'civilDusk', label: '民用暮光終', d: t.dusk, group: 'dusk' },
       { key: 'nauticalDusk', label: '航海暮光終', d: t.nauticalDusk, group: 'dusk' },
