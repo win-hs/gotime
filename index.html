@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoTime｜開工吉時</title>
+<meta name="description" content="生態調查用：日出日落、曙暮光、月相、潮汐與天氣一頁查詢">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>開工吉時 <span class="en">GoTime</span></h1>
+    <p class="tagline">挑對時間再出門</p>
+    <div class="head-tools">
+      <select id="fav-select" title="常用地點"></select>
+      <button id="fav-add" class="icon" title="將目前位置加入常用">★ 加入</button>
+      <button id="fav-del" class="icon" title="刪除選取的常用地點">刪除</button>
+      <button id="share-btn" class="icon" title="複製這個位置與日期的連結">分享</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="controls">
+    <div class="panel">
+      <h2>位置</h2>
+      <div id="map"></div>
+      <div class="row" style="margin-top:8px">
+        <span class="coord-label" id="coord-label">—</span>
+      </div>
+      <form class="row" id="coord-form">
+        <input type="text" id="coord-input" placeholder="地名，或座標 23.97, 120.98">
+        <button type="submit">搜尋</button>
+        <button type="button" id="locate-btn" class="icon" title="使用目前位置">定位</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>日期</h2>
+      <div class="row">
+        <button id="prev-day" title="前一天">◀</button>
+        <input type="date" id="date-input">
+        <button id="next-day" title="後一天">▶</button>
+        <button id="today-btn">今天</button>
+        <span class="badge" id="today-badge">今天</span>
+      </div>
+      <div class="row" style="color:var(--muted);font-size:13px;margin-top:10px">
+        點地圖任一處、拖曳圖釘，或搜尋地名／貼上座標即可切換位置。
+        潮汐取最近的預報點（含漁港、海水浴場、潛點），天氣取最近鄉鎮。
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <section class="card">
+      <h2>☀️ 太陽</h2>
+      <div class="card-body" id="sun-body"></div>
+    </section>
+
+    <section class="card">
+      <h2>🌙 月亮</h2>
+      <div class="card-body" id="moon-body"></div>
+    </section>
+
+    <section class="card">
+      <h2>🌊 潮汐</h2>
+      <div class="card-body" id="tide-body"></div>
+    </section>
+
+    <section class="card">
+      <h2>⛅ 天氣</h2>
+      <div class="card-body" id="weather-body"></div>
+    </section>
+
+    <section class="card card-wide">
+      <h2>🎯 調查時段</h2>
+      <div class="card-body" id="plan-body"></div>
+    </section>
+  </div>
+
+  <footer>
+    日月時刻為本機天文計算，時區固定臺灣時間（+08:00）；潮汐與天氣來自中央氣象署開放資料。
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="overlay-head">
+      <h3 id="overlay-title"></h3>
+      <button id="overlay-close" class="icon" aria-label="關閉">✕</button>
+    </div>
+    <div class="overlay-body" id="overlay-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="lib/suncalc.js"></script>
+<script src="js/config.js"></script>
+<script src="js/moonpos.js"></script>
+<script src="js/astro.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/cwa.js"></script>
+<script src="js/plan.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
