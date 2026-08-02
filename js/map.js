@@ -1,7 +1,7 @@
 /* Leaflet 地圖：點選取點，可視範圍限制在台灣；雷達回波疊圖 */
 
 const GMap = (function () {
-  let map = null, marker = null, onPick = null, radarLayer = null;
+  let map = null, marker = null, onPick = null, radarLayer = null, rainLayer = null;
 
   function init(lat, lon, pickHandler) {
     onPick = pickHandler;
@@ -61,10 +61,33 @@ const GMap = (function () {
     if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; }
   }
 
-  const setRadarOpacity = (v) => { if (radarLayer) radarLayer.setOpacity(v); };
+  /** 雨量站標記：最近的一站用紅色，其餘藍色 */
+  function setRainStations(stations) {
+    clearRainStations();
+    if (!stations || !stations.length) return;
+    rainLayer = L.layerGroup();
+    stations.forEach((s, i) => {
+      const near = i === 0;
+      L.circleMarker([s.lat, s.lon], {
+        radius: near ? 7 : 5,
+        color: '#fff', weight: 2,
+        fillColor: near ? '#d93025' : '#1a73e8',
+        fillOpacity: 1,
+      }).bindPopup(
+        `<b>${s.name}</b><br>${s.town}・${s.dist.toFixed(1)} km`
+        + `<br>1 小時 ${s.h1 === null ? '—' : s.h1.toFixed(1)} mm`
+        + `　24 小時 ${s.h24 === null ? '—' : s.h24.toFixed(1)} mm`
+      ).addTo(rainLayer);
+    });
+    rainLayer.addTo(map);
+  }
+
+  function clearRainStations() {
+    if (rainLayer) { map.removeLayer(rainLayer); rainLayer = null; }
+  }
 
   return {
-    init, setMarker, setRadar, clearRadar, setRadarOpacity,
+    init, setMarker, setRadar, clearRadar, setRainStations, clearRainStations,
     get instance() { return map; },
   };
 })();

@@ -57,7 +57,7 @@ const CWA = (function () {
   /* ---------------- 鄉鎮天氣 ---------------- */
 
   const EL7 = ['天氣現象', '12小時降雨機率', '最高溫度', '最低溫度', '風速',
-    '紫外線指數', '最高體感溫度', '最低體感溫度', '天氣預報綜合描述'];
+    '最高體感溫度', '最低體感溫度', '天氣預報綜合描述'];
   const EL3 = ['天氣現象', '3小時降雨機率', '溫度', '風速', '天氣預報綜合描述'];
 
   /** 把 WeatherElement[] 依 StartTime 併成時段列（各要素段數不同，例如紫外線只有白天） */
@@ -133,11 +133,10 @@ const CWA = (function () {
   function groupByDay(periods) {
     const map = new Map();
     for (const p of periods) {
-      if (!map.has(p.date)) map.set(p.date, { date: p.date, day: null, night: null, uv: null, atMin: null, atMax: null });
+      if (!map.has(p.date)) map.set(p.date, { date: p.date, day: null, night: null, atMin: null, atMax: null });
       const g = map.get(p.date);
       if (p.hhmm === '06:00') g.day = p; else if (p.hhmm === '18:00') g.night = p;
       else if (!g.day) g.day = p;                       // 首日可能非整點起算
-      if (p.uv !== null && g.uv === null) g.uv = { v: p.uv, level: p.uvLevel };
       for (const [k, v] of [['atMin', p.atMin], ['atMax', p.atMax]]) {
         if (v === null) continue;
         if (g[k] === null) g[k] = v;

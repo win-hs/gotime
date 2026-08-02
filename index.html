@@ -3,73 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GoTime｜開工吉時</title>
-<meta name="description" content="生態調查用：日出日落、曙暮光、月相、潮汐與天氣一頁查詢">
+<title>GoTime：開工吉時</title>
+<meta name="description" content="GoTime 開工吉時：生態調查出勤時機查詢。日出日落、曙暮光、月相、潮汐、鄉鎮天氣與雷達回波一頁看完，並依自訂規則算出調查時段、匯出行事曆。">
+<link rel="canonical" href="https://win-hs.github.io/gotime/">
+<meta property="og:title" content="GoTime：開工吉時">
+<meta property="og:description" content="日出日落、曙暮光、月相、潮汐、天氣與雷達回波一頁看完，並算出你的調查時段。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://win-hs.github.io/gotime/">
+<meta property="og:locale" content="zh_TW">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="lib/leaflet/leaflet.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <h1>開工吉時 <span class="en">GoTime</span></h1>
-    <p class="tagline">挑對時間再出門</p>
-    <div class="head-tools">
-      <select id="fav-select" title="常用地點"></select>
-      <button id="fav-add" class="icon" title="將目前位置加入常用">★ 加入</button>
-      <button id="fav-del" class="icon" title="刪除選取的常用地點">刪除</button>
-      <button id="share-btn" class="icon" title="複製這個位置與日期的連結">分享</button>
-      <button id="settings-btn" class="icon" title="選擇要顯示的項目">⚙ 顯示項目</button>
-    </div>
+<header class="app-bar">
+  <div class="app-bar-brand">
+    <span class="app-bar-logo" aria-hidden="true">🕗</span>
+    <h1 class="app-bar-title">GoTime：開工吉時</h1>
   </div>
+  <nav class="app-bar-actions">
+    <a class="md-btn" href="https://sites.google.com/view/fieldbox/homepage">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z"/></svg>
+      返回 Field-Box 首頁
+    </a>
+    <a class="md-btn" href="mailto:a.wen90@gmail.com?subject=Field-Box%20%E5%9B%9E%E5%A0%B1%EF%BC%9AGoTime">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+      回報問題
+    </a>
+    <span class="visit-chip">總造訪次數<b id="visits">00000000</b></span>
+  </nav>
 </header>
 
 <div class="wrap">
 
-  <div class="controls">
-    <div class="panel">
-      <h2>位置</h2>
+  <!-- ===== 上方：位置 ＋ 控制 ===== -->
+  <div class="top-grid">
+
+    <section class="panel">
+      <h2 class="panel-h">位置</h2>
       <div id="map"></div>
-      <div class="row" style="margin-top:8px">
-        <span class="coord-label" id="coord-label">—</span>
-      </div>
-      <form class="row search-row" id="coord-form" autocomplete="off">
+      <form class="loc-row" id="coord-form" autocomplete="off">
         <div class="search-wrap">
-          <input type="text" id="coord-input" placeholder="地名、山名、地址，或座標 23.97, 120.98"
+          <input type="text" id="coord-input" placeholder="地名、山名、地址或座標"
                  role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest">
           <div class="suggest" id="suggest" role="listbox"></div>
         </div>
-        <button type="submit">搜尋</button>
-        <button type="button" id="locate-btn" class="icon" title="使用目前位置">定位</button>
+        <button type="submit" class="md-btn-out">搜尋</button>
+        <button type="button" class="md-btn-out" id="locate-btn">定位</button>
+        <div class="fav-wrap">
+          <button type="button" class="md-btn-out fav-toggle" id="fav-toggle">
+            <span id="fav-current">常用地點</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="fav-menu" id="fav-menu"></div>
+        </div>
+        <button type="button" class="md-btn-out" id="fav-add">★ 加入</button>
       </form>
-    </div>
-
-    <div class="panel">
-      <h2>日期</h2>
-      <div class="row">
-        <button id="prev-day" title="前一天">◀</button>
-        <input type="date" id="date-input">
-        <button id="next-day" title="後一天">▶</button>
-        <button id="today-btn">今天</button>
-        <span class="badge" id="today-badge">今天</span>
-      </div>
-      <div class="row" id="range-row">
-        <span class="range-lbl">多日總覽</span>
-        <div class="seg" id="range-seg"></div>
-      </div>
-      <div class="row" style="color:var(--muted);font-size:13px;margin-top:10px">
-        點地圖任一處、拖曳圖釘，或搜尋地名／貼上座標即可切換位置。
-        潮汐取最近的預報點（含漁港、海水浴場、潛點），天氣取最近鄉鎮。
-      </div>
-    </div>
-  </div>
-
-  <div class="cards">
-    <section class="card" id="card-sun">
-      <h2>☀️ 日出日落</h2>
-      <div class="card-body" id="sun-body"></div>
+      <div class="loc-label" id="coord-label"></div>
     </section>
 
+    <section class="panel">
+      <div class="date-row">
+        <button class="md-btn-out" id="today-btn">今天</button>
+        <button class="md-btn-out icon-only" id="prev-day" title="前一天">◀</button>
+        <input type="date" id="date-input">
+        <button class="md-btn-out icon-only" id="next-day" title="後一天">▶</button>
+        <span class="grow"></span>
+        <div class="seg" id="range-seg"></div>
+      </div>
+
+      <div class="toggle-row">
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="weather"> 天氣</label>
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="moon"> 月相</label>
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="sun"> 日出/落</label>
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="tide"> 潮汐</label>
+        <span class="grow"></span>
+        <button class="md-chip" id="radar-btn">雷達回波開啟</button>
+        <button class="md-chip" id="qpf-btn">降水預報開啟</button>
+      </div>
+
+      <div class="plan-summary" id="plan-summary"></div>
+
+      <div class="panel-foot">
+        <button class="md-btn-out" id="rules-btn">調查規劃</button>
+        <button class="md-btn-fill" id="share-btn">分享開工吉時</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== 卡片 ===== -->
+  <section class="card" id="card-multi">
+    <h2>📅 多日總覽</h2>
+    <div class="card-body" id="multi-body"></div>
+  </section>
+
+  <div class="cards">
+    <section class="card" id="card-weather">
+      <h2>🌤️ 天氣</h2>
+      <div class="card-body" id="weather-body"></div>
+    </section>
+
+    <section class="card" id="card-sun">
+      <h2>🌅 日出日落</h2>
+      <div class="card-body" id="sun-body"></div>
+    </section>
+  </div>
+
+  <section class="card" id="card-radar">
+    <h2>🌧️ 降雨與雷達回波</h2>
+    <div class="card-body" id="radar-body"></div>
+  </section>
+
+  <div class="cards">
     <section class="card" id="card-moon">
       <h2>🌙 月相</h2>
       <div class="card-body" id="moon-body"></div>
@@ -79,30 +127,11 @@
       <h2>🌊 潮汐</h2>
       <div class="card-body" id="tide-body"></div>
     </section>
-
-    <section class="card" id="card-weather">
-      <h2>⛅ 天氣</h2>
-      <div class="card-body" id="weather-body"></div>
-    </section>
-
-    <section class="card card-wide" id="card-radar">
-      <h2>🌧️ 降雨與雷達回波</h2>
-      <div class="card-body" id="radar-body"></div>
-    </section>
-
-    <section class="card card-wide" id="card-multi">
-      <h2>📅 多日總覽</h2>
-      <div class="card-body" id="multi-body"></div>
-    </section>
-
-    <section class="card card-wide" id="card-plan">
-      <h2>🎯 調查時段</h2>
-      <div class="card-body" id="plan-body"></div>
-    </section>
   </div>
 
   <footer>
-    日月時刻為本機天文計算，時區固定臺灣時間（+08:00）；潮汐與天氣來自中央氣象署開放資料。
+    日月時刻為本機天文計算，時區固定臺灣時間（+08:00）；
+    天氣、潮汐、雨量與雷達回波來自中央氣象署開放資料。
   </footer>
 </div>
 
@@ -110,7 +139,7 @@
   <div class="overlay-box">
     <div class="overlay-head">
       <h3 id="overlay-title"></h3>
-      <button id="overlay-close" class="icon" aria-label="關閉">✕</button>
+      <button id="overlay-close" class="md-btn-out icon-only" aria-label="關閉">✕</button>
     </div>
     <div class="overlay-body" id="overlay-body"></div>
   </div>

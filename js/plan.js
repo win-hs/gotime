@@ -19,8 +19,10 @@ const Plan = (function () {
     { id: 'moonset',      label: '月落' },
     { id: 'highTide',     label: '滿潮' },
     { id: 'lowTide',      label: '乾潮' },
-    { id: 'fixed',        label: '固定時刻' },
+    { id: 'fixed',        label: '指定時刻' },
   ];
+  /** 指定時刻的錨點不吃「偏移分鐘」，改用 HH:MM 時間輸入 */
+  const isFixed = (id) => id === 'fixed';
   const anchorLabel = (id) => (ANCHORS.find((a) => a.id === id) || {}).label || id;
   const isTide = (id) => id === 'highTide' || id === 'lowTide';
 
@@ -80,6 +82,7 @@ const Plan = (function () {
         return ctx.tideDay.times.filter((x) => x.tide === want).map((x) => x.dt);
       }
       case 'fixed':
+        // 偏移欄位存的是「當日 00:00 起算的分鐘數」，UI 以 HH:MM 呈現
         return [new Date(ctx.date + 'T00:00:00+08:00')];
       default: return [];
     }
@@ -107,6 +110,13 @@ const Plan = (function () {
     }
 
     const windows = [];
+    // 兩端都是指定時刻＝直接設定幾點到幾點；訖點若早於起點視為跨夜到隔日
+    if (isFixed(rule.start.anchor) && isFixed(rule.end.anchor)) {
+      const s = shift(starts[0], rule.start.offset);
+      let e = shift(ends[0], rule.end.offset);
+      if (e <= s) e = new Date(e.getTime() + 86400000);
+      return { windows: [{ start: s, end: e }], reason: null };
+    }
     if (rule.start.anchor === rule.end.anchor) {
       // 同錨點：逐次配對（如乾潮前後各 2 小時 → 每次乾潮一個時段）
       starts.forEach((s, i) => {
@@ -188,5 +198,14 @@ const Plan = (function () {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  return { ANCHORS, anchorLabel, isTide, DEFAULTS, load, save, storageOK, apply, buildICS, download, icsTime };
+  /** 偏移分鐘 → HH:MM（指定時刻用） */
+  const toHHMM = (m) => pad(Math.floor(((m % 1440) + 1440) % 1440 / 60)) + ':' + pad(((m % 60) + 60) % 60);
+  /** HH:MM → 偏移分鐘 */
+  const fromHHMM = (s) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(s).trim());
+    return m ? (+m[1]) * 60 + (+m[2]) : 0;
+  };
+
+  return { ANCHORS, anchorLabel, isTide, isFixed, DEFAULTS, load, save, storageOK,
+    apply, buildICS, download, icsTime, toHHMM, fromHHMM };
 })();

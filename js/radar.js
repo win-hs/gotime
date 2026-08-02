@@ -128,6 +128,7 @@ const Radar = (function () {
       return {
         name: st.StationName,
         town: st.GeoInfo.TownName,
+        lat: la, lon: lo,
         alt: parseFloat(st.GeoInfo.StationAltitude),
         time: st.ObsTime.DateTime,
         dist: Geo.distance(lat, lon, la, lo),
@@ -139,5 +140,38 @@ const Radar = (function () {
     }).sort((a, b) => a.dist - b.dist).slice(0, limit || 5);
   }
 
-  return { meta, buildOverlay, dispose, rainfall };
+  /* ---------------- 定量降水預報（QPF） ---------------- */
+
+  /**
+   * 氣象署定量降水預報圖，共 4 張、最長預報 12 小時。
+   * ⚠ 這是**成品圖表**，回應不含經緯度範圍，無法疊在地圖上，只能當圖片顯示。
+   */
+  const QPF = [
+    { id: 'F-C0035-015', label: '定量降水預報（一）' },
+    { id: 'F-C0035-017', label: '定量降水預報（二）' },
+    { id: 'F-C0035-023', label: '定量降水預報（三）' },
+    { id: 'F-C0035-024', label: '定量降水預報（四）' },
+  ];
+
+  async function qpf() {
+    const one = async (q) => {
+      const url = `https://opendata.cwa.gov.tw/fileapi/v1/opendataapi/${q.id}`
+        + `?Authorization=${CONFIG.CWA_API_KEY}&downloadType=WEB&format=JSON`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('降水預報取得失敗 ' + r.status);
+      const j = JSON.parse(await r.text());
+      const d = j.cwaopendata.Dataset || j.cwaopendata.dataset;
+      const res = d.Resource || d.resource;
+      return {
+        label: q.label,
+        desc: res.ResourceDesc || res.ResourceDescription || q.label,
+        image: res.ProductURL,
+        sent: j.cwaopendata.Sent || j.cwaopendata.sent || '',
+      };
+    };
+    const out = await Promise.all(QPF.map((q) => one(q).catch(() => null)));
+    return out.filter(Boolean);
+  }
+
+  return { meta, buildOverlay, dispose, rainfall, qpf };
 })();

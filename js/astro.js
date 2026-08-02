@@ -36,14 +36,14 @@ const Astro = (function () {
   function sun(dateStr, lat, lon) {
     const t = SunCalc.getTimes(noonOf(dateStr), lat, lon);
     const rows = [
-      { key: 'astroDawn', label: '天文曙光始', d: t.nightEnd, group: 'dawn' },
-      { key: 'nauticalDawn', label: '航海曙光始', d: t.nauticalDawn, group: 'dawn' },
-      { key: 'civilDawn', label: '民用曙光始', d: t.dawn, group: 'dawn' },
-      { key: 'sunrise', label: '日出', d: t.sunrise, group: 'sun' },
-      { key: 'sunset', label: '日落', d: t.sunset, group: 'sun' },
-      { key: 'civilDusk', label: '民用暮光終', d: t.dusk, group: 'dusk' },
-      { key: 'nauticalDusk', label: '航海暮光終', d: t.nauticalDusk, group: 'dusk' },
-      { key: 'astroDusk', label: '天文暮光終', d: t.night, group: 'dusk' },
+      { key: 'astroDawn', label: '天文曙光始', em: '🌌', d: t.nightEnd, group: 'dawn' },
+      { key: 'nauticalDawn', label: '航海曙光始', em: '🌊', d: t.nauticalDawn, group: 'dawn' },
+      { key: 'civilDawn', label: '民用曙光始', em: '🌄', d: t.dawn, group: 'dawn' },
+      { key: 'sunrise', label: '日出', em: '🌅', d: t.sunrise, group: 'rise' },
+      { key: 'sunset', label: '日落', em: '🌇', d: t.sunset, group: 'set' },
+      { key: 'civilDusk', label: '民用暮光終', em: '🌆', d: t.dusk, group: 'dusk' },
+      { key: 'nauticalDusk', label: '航海暮光終', em: '🌊', d: t.nauticalDusk, group: 'dusk' },
+      { key: 'astroDusk', label: '天文暮光終', em: '🌌', d: t.night, group: 'dusk' },
     ].map((r) => Object.assign(r, fmt(r.d, dateStr)));
 
     let dayLength = '—';
