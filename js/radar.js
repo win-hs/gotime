@@ -1,5 +1,5 @@
 /*
- * 降雨與雷達回波
+ * 雷達回波疊圖
  *
  * 兩個實測結論決定了本模組的作法：
  * 1. 雷達 PNG 的 <img crossOrigin> 會被拒，但 fetch() 可讀（回應 type: cors）。
@@ -32,11 +32,7 @@ const Radar = (function () {
       const ps = ds.datasetInfo.parameterSet;
       const [w, e] = ps.LongitudeRange.split('-').map(Number);
       const [s, n] = ps.LatitudeRange.split('-').map(Number);
-      return {
-        image: ds.resource.ProductURL,
-        time: ds.DateTime,
-        bounds: [[s, w], [n, e]],
-      };
+      return { image: ds.resource.ProductURL, time: ds.DateTime, bounds: [[s, w], [n, e]] };
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('雷達資料連線逾時');
       throw err;
@@ -66,9 +62,8 @@ const Radar = (function () {
     // 逐列重取樣：輸出列在 Mercator y 上等距，回推來源列（等經緯度）
     const srcH = img.naturalHeight, srcW = img.naturalWidth;
     for (let j = 0; j < OUT; j++) {
-      const y0 = yN + (j / OUT) * (yS - yN);
-      const y1 = yN + ((j + 1) / OUT) * (yS - yN);
-      const lat0 = mercInv(y0), lat1 = mercInv(y1);
+      const lat0 = mercInv(yN + (j / OUT) * (yS - yN));
+      const lat1 = mercInv(yN + ((j + 1) / OUT) * (yS - yN));
       const r0 = (n - lat0) / (n - s) * srcH;
       const r1 = (n - lat1) / (n - s) * srcH;
       cx.drawImage(img, 0, r0, srcW, Math.max(1, r1 - r0), 0, j, OUT, 1);
@@ -94,84 +89,5 @@ const Radar = (function () {
     if (objUrl) { URL.revokeObjectURL(objUrl); objUrl = null; }
   }
 
-  /* ---------------- 雨量觀測 ---------------- */
-
-  /**
-   * 取某縣市的自動雨量站即時觀測，回傳離指定座標最近的數站。
-   * ⚠ 測站同時提供 TWD67 與 WGS84 座標，**必須取 WGS84**。
-   */
-  async function rainfall(countyName, lat, lon, limit) {
-    const q = new URLSearchParams({
-      Authorization: CONFIG.CWA_API_KEY, CountyName: countyName,
-    });
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 15000);
-    let j;
-    try {
-      const r = await fetch(CONFIG.CWA_BASE + 'O-A0002-001?' + q, { signal: ctl.signal });
-      if (!r.ok) throw new Error('雨量觀測取得失敗 ' + r.status);
-      j = await r.json();
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('雨量觀測連線逾時');
-      throw err;
-    } finally { clearTimeout(timer); }
-
-    const stations = (j.records && j.records.Station) || [];
-    const num = (v) => {
-      const x = parseFloat(v);
-      return isFinite(x) && x > -90 ? x : null;   // -99/-990 為無效值
-    };
-    return stations.map((st) => {
-      const wgs = st.GeoInfo.Coordinates.find((c) => c.CoordinateName === 'WGS84');
-      const la = parseFloat(wgs.StationLatitude), lo = parseFloat(wgs.StationLongitude);
-      const el = st.RainfallElement;
-      return {
-        name: st.StationName,
-        town: st.GeoInfo.TownName,
-        lat: la, lon: lo,
-        alt: parseFloat(st.GeoInfo.StationAltitude),
-        time: st.ObsTime.DateTime,
-        dist: Geo.distance(lat, lon, la, lo),
-        now: num(el.Now && el.Now.Precipitation),
-        h1: num(el.Past1hr && el.Past1hr.Precipitation),
-        h3: num(el.Past3hr && el.Past3hr.Precipitation),
-        h24: num(el.Past24hr && el.Past24hr.Precipitation),
-      };
-    }).sort((a, b) => a.dist - b.dist).slice(0, limit || 5);
-  }
-
-  /* ---------------- 定量降水預報（QPF） ---------------- */
-
-  /**
-   * 氣象署定量降水預報圖，共 4 張、最長預報 12 小時。
-   * ⚠ 這是**成品圖表**，回應不含經緯度範圍，無法疊在地圖上，只能當圖片顯示。
-   */
-  const QPF = [
-    { id: 'F-C0035-015', label: '定量降水預報（一）' },
-    { id: 'F-C0035-017', label: '定量降水預報（二）' },
-    { id: 'F-C0035-023', label: '定量降水預報（三）' },
-    { id: 'F-C0035-024', label: '定量降水預報（四）' },
-  ];
-
-  async function qpf() {
-    const one = async (q) => {
-      const url = `https://opendata.cwa.gov.tw/fileapi/v1/opendataapi/${q.id}`
-        + `?Authorization=${CONFIG.CWA_API_KEY}&downloadType=WEB&format=JSON`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error('降水預報取得失敗 ' + r.status);
-      const j = JSON.parse(await r.text());
-      const d = j.cwaopendata.Dataset || j.cwaopendata.dataset;
-      const res = d.Resource || d.resource;
-      return {
-        label: q.label,
-        desc: res.ResourceDesc || res.ResourceDescription || q.label,
-        image: res.ProductURL,
-        sent: j.cwaopendata.Sent || j.cwaopendata.sent || '',
-      };
-    };
-    const out = await Promise.all(QPF.map((q) => one(q).catch(() => null)));
-    return out.filter(Boolean);
-  }
-
-  return { meta, buildOverlay, dispose, rainfall, qpf };
+  return { meta, buildOverlay, dispose };
 })();

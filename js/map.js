@@ -1,7 +1,18 @@
 /* Leaflet 地圖：點選取點，可視範圍限制在台灣；雷達回波疊圖 */
 
 const GMap = (function () {
-  let map = null, marker = null, onPick = null, radarLayer = null, rainLayer = null;
+  let map = null, marker = null, onPick = null, radarLayer = null;
+
+  // Material red 圖釘（取代 Leaflet 預設藍色）
+  const PIN = L.divIcon({
+    className: 'gt-pin',
+    html: '<svg viewBox="0 0 24 34" width="26" height="37" aria-hidden="true">'
+      + '<path d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 22 12 22s12-13.6 12-22C24 5.4 18.6 0 12 0z" '
+      + 'fill="#ea4335" stroke="#fff" stroke-width="1.5"/>'
+      + '<circle cx="12" cy="12" r="4.4" fill="#fff"/></svg>',
+    iconSize: [26, 37],
+    iconAnchor: [13, 36],
+  });
 
   function init(lat, lon, pickHandler) {
     onPick = pickHandler;
@@ -20,7 +31,7 @@ const GMap = (function () {
       attribution: '&copy; OpenStreetMap',
     }).addTo(map);
 
-    marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+    marker = L.marker([lat, lon], { draggable: true, icon: PIN }).addTo(map);
     marker.on('dragend', () => {
       const p = clamp(marker.getLatLng());
       marker.setLatLng(p);
@@ -61,33 +72,8 @@ const GMap = (function () {
     if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; }
   }
 
-  /** 雨量站標記：最近的一站用紅色，其餘藍色 */
-  function setRainStations(stations) {
-    clearRainStations();
-    if (!stations || !stations.length) return;
-    rainLayer = L.layerGroup();
-    stations.forEach((s, i) => {
-      const near = i === 0;
-      L.circleMarker([s.lat, s.lon], {
-        radius: near ? 7 : 5,
-        color: '#fff', weight: 2,
-        fillColor: near ? '#d93025' : '#1a73e8',
-        fillOpacity: 1,
-      }).bindPopup(
-        `<b>${s.name}</b><br>${s.town}・${s.dist.toFixed(1)} km`
-        + `<br>1 小時 ${s.h1 === null ? '—' : s.h1.toFixed(1)} mm`
-        + `　24 小時 ${s.h24 === null ? '—' : s.h24.toFixed(1)} mm`
-      ).addTo(rainLayer);
-    });
-    rainLayer.addTo(map);
-  }
-
-  function clearRainStations() {
-    if (rainLayer) { map.removeLayer(rainLayer); rainLayer = null; }
-  }
-
   return {
-    init, setMarker, setRadar, clearRadar, setRainStations, clearRainStations,
+    init, setMarker, setRadar, clearRadar,
     get instance() { return map; },
   };
 })();

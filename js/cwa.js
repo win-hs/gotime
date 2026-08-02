@@ -56,9 +56,9 @@ const CWA = (function () {
 
   /* ---------------- 鄉鎮天氣 ---------------- */
 
-  const EL7 = ['天氣現象', '12小時降雨機率', '最高溫度', '最低溫度', '風速',
+  const EL7 = ['天氣現象', '12小時降雨機率', '最高溫度', '最低溫度', '風速', '風向',
     '最高體感溫度', '最低體感溫度', '天氣預報綜合描述'];
-  const EL3 = ['天氣現象', '3小時降雨機率', '溫度', '風速', '天氣預報綜合描述'];
+  const EL3 = ['天氣現象', '3小時降雨機率', '溫度', '體感溫度', '風速', '風向', '天氣預報綜合描述'];
 
   /** 把 WeatherElement[] 依 StartTime 併成時段列（各要素段數不同，例如紫外線只有白天） */
   function mergePeriods(elements) {
@@ -88,8 +88,10 @@ const CWA = (function () {
       tMax: num(v.MaxTemperature),
       tMin: num(v.MinTemperature),
       temp: num(v.Temperature),
+      at: num(v.ApparentTemperature),
       atMax: num(v.MaxApparentTemperature),
       atMin: num(v.MinApparentTemperature),
+      windDir: v.WindDirection || null,
       wind: num(v.WindSpeed),
       beaufort: v.BeaufortScale || null,
       uv: num(v.UVIndex),
@@ -152,5 +154,18 @@ const CWA = (function () {
     return groupByDay(all).filter((g) => g.date >= startDate).slice(0, n);
   }
 
-  return { tide, weather, weatherDays, groupByDay };
+  /**
+   * 逐時序列，供溫度曲線用。
+   * 3 天 → 逐 3 小時（有實際溫度與體感溫度）；1 週 → 逐 12 小時（只有高低溫）。
+   */
+  async function series(town, startDate, days) {
+    const useHourly = days <= 3;
+    const all = await fetchWeather(useHourly ? town.ds3 : town.ds7, town.name,
+      useHourly ? EL3 : EL7);
+    const endDate = Astro.shiftDate(startDate, days);
+    const pts = all.filter((p) => p.date >= startDate && p.date < endDate);
+    return { points: pts, hourly: useHourly };
+  }
+
+  return { tide, weather, weatherDays, groupByDay, series };
 })();

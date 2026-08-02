@@ -36,14 +36,15 @@ const Astro = (function () {
   function sun(dateStr, lat, lon) {
     const t = SunCalc.getTimes(noonOf(dateStr), lat, lon);
     const rows = [
-      { key: 'astroDawn', label: '天文曙光始', em: '🌌', d: t.nightEnd, group: 'dawn' },
-      { key: 'nauticalDawn', label: '航海曙光始', em: '🌊', d: t.nauticalDawn, group: 'dawn' },
-      { key: 'civilDawn', label: '民用曙光始', em: '🌄', d: t.dawn, group: 'dawn' },
-      { key: 'sunrise', label: '日出', em: '🌅', d: t.sunrise, group: 'rise' },
-      { key: 'sunset', label: '日落', em: '🌇', d: t.sunset, group: 'set' },
-      { key: 'civilDusk', label: '民用暮光終', em: '🌆', d: t.dusk, group: 'dusk' },
-      { key: 'nauticalDusk', label: '航海暮光終', em: '🌊', d: t.nauticalDusk, group: 'dusk' },
-      { key: 'astroDusk', label: '天文暮光終', em: '🌌', d: t.night, group: 'dusk' },
+      // 圖示以「類型」區分：星＝天文、錨＝航海、雲日＝民用；日出☀️與日落🌆刻意差異最大
+      { key: 'astroDawn', label: '天文曙光始', em: '⭐', d: t.nightEnd, group: 'dawn' },
+      { key: 'nauticalDawn', label: '航海曙光始', em: '⚓', d: t.nauticalDawn, group: 'dawn' },
+      { key: 'civilDawn', label: '民用曙光始', em: '🌤️', d: t.dawn, group: 'dawn' },
+      { key: 'sunrise', label: '日出', em: '☀️', d: t.sunrise, group: 'rise' },
+      { key: 'sunset', label: '日落', em: '🌆', d: t.sunset, group: 'set' },
+      { key: 'civilDusk', label: '民用暮光終', em: '🌥️', d: t.dusk, group: 'dusk' },
+      { key: 'nauticalDusk', label: '航海暮光終', em: '⚓', d: t.nauticalDusk, group: 'dusk' },
+      { key: 'astroDusk', label: '天文暮光終', em: '⭐', d: t.night, group: 'dusk' },
     ].map((r) => Object.assign(r, fmt(r.d, dateStr)));
 
     let dayLength = '—';

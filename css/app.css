@@ -250,62 +250,94 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .wx-sub .temp { color: var(--ink); font-weight: 500; }
 .wx-sub .pop { color: var(--md-primary); }
 
-/* ===== 多日總覽（Google 天氣 App 風格：直向清單＋溫度長條） ===== */
-.gd-list { display: flex; flex-direction: column; }
-.gd-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid #f1f3f4; }
-.gd-row:last-child { border-bottom: none; }
-.gd-row.cur { background: var(--md-primary-container); margin: 0 -16px; padding-left: 20px; padding-right: 20px; border-radius: 0; }
-.gd-day { flex: none; width: 74px; }
-.gd-day .d1 { font-size: 14px; font-weight: 500; }
-.gd-day .d2 { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
-.gd-ico { flex: none; font-size: 22px; width: 30px; text-align: center; line-height: 1; }
-.gd-wx { flex: 1 1 120px; min-width: 0; }
-.gd-wx .w1 { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-wx .w2 { font-size: 12px; color: var(--md-primary); }
-.gd-bar { flex: none; width: 190px; display: flex; align-items: center; gap: 8px; }
-.gd-lo, .gd-hi { font-size: 13px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; width: 34px; }
-.gd-lo { color: var(--muted); text-align: right; }
-.gd-hi { color: var(--ink); font-weight: 500; }
-.gd-track { flex: 1; height: 5px; border-radius: 3px; background: #e8eaed; position: relative; }
-.gd-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px;
-  background: linear-gradient(90deg, #4285f4, #fbbc04, #ea4335); }
-.gd-extra { font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap;
-  padding: 0 4px 10px 86px; margin-top: -6px; }
-.gd-row.cur + .gd-extra { padding-left: 90px; }
-.gd-extra .mono { font-family: var(--font-mono); }
-.gd-extra .hi2 { color: var(--tide-high); }
-.gd-extra .lo2 { color: var(--tide-low); }
-@media (max-width: 700px) {
-  .gd-bar { width: 120px; }
-  .gd-wx { flex-basis: 80px; }
-  .gd-extra { padding-left: 12px; }
+/* ===== 天氣預報表（欄＝日期，各分白天／晚上） ===== */
+.fc-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.fc { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+table.fc th, table.fc td {
+  border: 1px solid var(--md-outline); padding: 6px 8px; text-align: center; vertical-align: middle;
 }
+table.fc th.fc-rh {
+  background: var(--md-surface-1); font-weight: 500; font-size: 12px; color: var(--md-on-surface-var);
+  white-space: nowrap; text-align: left; position: sticky; left: 0; z-index: 2;
+}
+table.fc th.fc-corner { background: var(--md-primary); color: #fff; }
+table.fc th.fc-date { background: var(--md-surface-1); white-space: nowrap; }
+table.fc th.fc-date.cur { background: var(--md-primary); color: #fff; }
+table.fc th.fc-date.today:not(.cur) { background: var(--md-primary-container); color: var(--md-primary-hover); }
+table.fc th.fc-part { background: #fff; font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.fc-d { font-weight: 700; font-size: 13px; }
+.fc-w { font-size: 11px; opacity: .85; }
+.fc-ico { font-size: 19px; line-height: 1.2; }
+.fc-wx { font-size: 12px; white-space: nowrap; }
+td.fc-hi { color: var(--md-error); font-family: var(--font-mono); white-space: nowrap; }
+td.fc-lo { color: var(--md-primary); font-family: var(--font-mono); white-space: nowrap; }
+.fc-pop { color: var(--md-primary); font-family: var(--font-mono); }
+td.fc-sm, .fc-sm { font-size: 12px; color: var(--muted); white-space: nowrap; }
+td.fc-span { background: #fcfcfd; }
+.fc-sun { color: var(--sunrise); font-family: var(--font-mono); white-space: nowrap; }
+.fc-set { color: var(--sunset); font-family: var(--font-mono); white-space: nowrap; }
+.fc-t { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.fc-t.high { color: var(--tide-high); }
+.fc-t.low { color: var(--tide-low); }
 .mx-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
 
-/* ===== 降雨與雷達 ===== */
-.rain-head { display: flex; align-items: center; font-size: 11px; color: var(--muted); padding-bottom: 4px; }
-.rain-head > span:first-child { flex: 1; }
-.rain-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f1f3f4; }
-.rain-row.wet { background: var(--md-primary-container); margin: 0 -6px; padding: 7px 6px; border-radius: 6px; }
-.rain-name { flex: 1; font-size: 13px; min-width: 0; display: flex; align-items: center; gap: 7px; }
-.rain-name small { display: block; font-size: 11px; color: var(--muted); }
-.rain-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--md-primary); flex: none; }
-.rain-dot.near { background: var(--md-error); }
-.rain-vals { display: flex; flex: none; }
-.rain-vals span { width: 54px; text-align: right; font-size: 13px;
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.rain-vals .h1 { font-weight: 500; color: var(--md-primary); }
-.rain-head .rain-vals span { font-family: var(--font-sans); font-weight: 400; color: var(--muted); }
-.radar-time { font-size: 12px; color: var(--muted); margin-right: auto; }
-.qpf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-@media (max-width: 700px) { .qpf-grid { grid-template-columns: 1fr; } }
-.qpf-item { border: 1px solid var(--md-outline); border-radius: var(--radius); overflow: hidden; background: #fff; }
-.qpf-item h4 { margin: 0; padding: 7px 10px; font-size: 12px; font-weight: 500;
-  color: var(--muted); border-bottom: 1px solid var(--md-outline); background: var(--md-surface-1); }
-.qpf-item img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+/* ===== 今天天氣：溫度曲線 ===== */
+.hb-legend { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--muted); padding-bottom: 6px; }
+.lg { display: inline-flex; align-items: center; gap: 5px; }
+.lg::before { content: ''; width: 14px; height: 3px; border-radius: 2px; }
+.lg-up::before { background: var(--md-warn); }
+.lg-lo::before { background: var(--md-on-surface-var); }
+.hb-unit { margin-left: auto; }
+.hb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.hb-svg { display: block; }
+.hb-night { fill: #f1f3f4; }
+.hb-grid { stroke: #edeff1; stroke-width: 1; }
+.hb-day { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 3 3; }
+.hb-axis { fill: var(--hint); font-size: 10px; text-anchor: end; font-family: var(--font-mono); }
+.hb-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hb-line.up { stroke: var(--md-warn); }
+.hb-line.lo { stroke: var(--md-on-surface-var); }
+.hb-dot { stroke: #fff; stroke-width: 1.5; }
+.hb-dot.up { fill: var(--md-warn); }
+.hb-dot.lo { fill: var(--md-on-surface-var); }
+.hb-val { font-size: 11px; text-anchor: middle; font-family: var(--font-mono); }
+.hb-val.up { fill: var(--md-warn); }
+.hb-val.lo { fill: var(--md-on-surface-var); }
+.hb-ico { font-size: 15px; text-anchor: middle; }
+.hb-hr { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font-mono); }
+.hb-date { font-size: 11px; fill: var(--md-primary); text-anchor: middle; font-weight: 500; }
+.cwa-links { justify-content: flex-start; flex-wrap: wrap; }
+.cwa-links a { text-decoration: none; }
 
-/* 地圖上的雨量站標記 */
-.rain-marker { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+/* ===== 分享下拉 ===== */
+.share-wrap { position: relative; }
+.share-menu {
+  display: none; position: absolute; right: 0; bottom: calc(100% + 6px); min-width: 250px;
+  background: #fff; border: 1px solid var(--md-outline); border-radius: var(--radius);
+  box-shadow: var(--md-shadow-2); z-index: 820; padding: 4px 0;
+}
+.share-menu.show { display: block; }
+.share-item {
+  display: block; width: 100%; text-align: left; border: none; background: transparent;
+  font-family: inherit; font-size: 14px; color: var(--ink); padding: 10px 14px; cursor: pointer;
+}
+.share-item small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.share-item:hover { background: var(--md-primary-container); }
+.share-box { width: 100%; font-family: var(--font-mono); font-size: 12px;
+  border: 1px solid var(--md-outline); border-radius: var(--radius); padding: 10px; }
+
+/* ===== 曙暮光勾選 ===== */
+.tw-row { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 9px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--md-outline); }
+.ck.locked { color: var(--hint); cursor: default; }
+
+/* ===== 規劃方案 ===== */
+.preset-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.ov-h { font-size: 13px; font-weight: 500; color: var(--md-on-surface-var);
+  margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--md-primary); }
+.ov-h:first-child { margin-top: 4px; }
+.fav-pick small { display: block; font-size: 11px; color: var(--muted); }
+.gcal { height: 30px; font-size: 12px; padding: 0 12px; text-decoration: none; }
 
 /* ===== 調查規則編輯器 ===== */
 .rule-help { font-size: 12px; color: var(--muted); padding: 6px 0 12px; line-height: 1.7; }
@@ -334,8 +366,10 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .win-dur { font-size: 12px; color: var(--muted); }
 
 /* ===== 覆蓋層 ===== */
+/* Leaflet 的 .leaflet-top/.leaflet-bottom 是 z-index:1000（含 OSM 版權標示），
+   覆蓋層必須高於它，否則對話框會被地圖控制項蓋住。 */
 .overlay { position: fixed; inset: 0; background: rgba(32,33,36,.5);
-  display: none; align-items: center; justify-content: center; padding: 16px; z-index: 900; }
+  display: none; align-items: center; justify-content: center; padding: 16px; z-index: 2000; }
 .overlay.show { display: flex; }
 .overlay-box { background: #fff; border-radius: 12px; width: min(820px, 100%); max-height: 88vh;
   display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--md-shadow-2); }
@@ -347,7 +381,7 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 /* ===== toast ===== */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
   background: #323639; color: #fff; padding: 11px 18px; border-radius: 6px; font-size: 14px;
-  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 1000; max-width: 90vw; }
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 2100; max-width: 90vw; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { background: var(--danger); }
 

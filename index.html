@@ -45,6 +45,7 @@
     <section class="panel">
       <h2 class="panel-h">位置</h2>
       <div id="map"></div>
+      <div class="loc-label" id="coord-label"></div>
       <form class="loc-row" id="coord-form" autocomplete="off">
         <div class="search-wrap">
           <input type="text" id="coord-input" placeholder="地名、山名、地址或座標"
@@ -62,10 +63,10 @@
         </div>
         <button type="button" class="md-btn-out" id="fav-add">★ 加入</button>
       </form>
-      <div class="loc-label" id="coord-label"></div>
     </section>
 
     <section class="panel">
+      <h2 class="panel-h">開工吉時</h2>
       <div class="date-row">
         <button class="md-btn-out" id="today-btn">今天</button>
         <button class="md-btn-out icon-only" id="prev-day" title="前一天">◀</button>
@@ -82,52 +83,52 @@
         <label class="ck"><input type="checkbox" class="card-ck" data-id="tide"> 潮汐</label>
         <span class="grow"></span>
         <button class="md-chip" id="radar-btn">雷達回波開啟</button>
-        <button class="md-chip" id="qpf-btn">降水預報開啟</button>
       </div>
 
       <div class="plan-summary" id="plan-summary"></div>
 
       <div class="panel-foot">
         <button class="md-btn-out" id="rules-btn">調查規劃</button>
-        <button class="md-btn-fill" id="share-btn">分享開工吉時</button>
+        <div class="share-wrap">
+          <button class="md-btn-fill" id="share-btn">分享開工吉時 ▾</button>
+          <div class="share-menu" id="share-menu">
+            <button type="button" class="share-item" data-m="text">
+              複製純文字<small>可直接貼到 LINE／訊息，格式不跑掉</small></button>
+            <button type="button" class="share-item" data-m="link">
+              複製本頁面連結<small>含目前位置、日期與所有顯示設定</small></button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
 
   <!-- ===== 卡片 ===== -->
   <section class="card" id="card-multi">
-    <h2>📅 多日總覽</h2>
+    <h2>📅 天氣預報</h2>
     <div class="card-body" id="multi-body"></div>
   </section>
 
-  <div class="cards">
-    <section class="card" id="card-weather">
-      <h2>🌤️ 天氣</h2>
-      <div class="card-body" id="weather-body"></div>
-    </section>
-
-    <section class="card" id="card-sun">
-      <h2>🌅 日出日落</h2>
-      <div class="card-body" id="sun-body"></div>
-    </section>
-  </div>
-
-  <section class="card" id="card-radar">
-    <h2>🌧️ 降雨與雷達回波</h2>
-    <div class="card-body" id="radar-body"></div>
+  <section class="card" id="card-hourly">
+    <h2>🌤️ 今天天氣</h2>
+    <div class="card-body" id="hourly-body"></div>
   </section>
 
   <div class="cards">
-    <section class="card" id="card-moon">
-      <h2>🌙 月相</h2>
-      <div class="card-body" id="moon-body"></div>
+    <section class="card" id="card-sun">
+      <h2>☀️ 日出/落</h2>
+      <div class="card-body" id="sun-body"></div>
     </section>
 
-    <section class="card" id="card-tide">
-      <h2>🌊 潮汐</h2>
-      <div class="card-body" id="tide-body"></div>
+    <section class="card" id="card-moon">
+      <h2>🌗 月相</h2>
+      <div class="card-body" id="moon-body"></div>
     </section>
   </div>
+
+  <section class="card" id="card-tide">
+    <h2>🌊 潮汐</h2>
+    <div class="card-body" id="tide-body"></div>
+  </section>
 
   <footer>
     日月時刻為本機天文計算，時區固定臺灣時間（+08:00）；
@@ -156,7 +157,8 @@
 <script src="js/geo.js"></script>
 <script src="js/cwa.js"></script>
 <script src="js/radar.js"></script>
-<script src="js/multiday.js"></script>
+<script src="js/forecast.js"></script>
+<script src="js/hourly.js"></script>
 <script src="js/plan.js"></script>
 <script src="js/map.js"></script>
 <script src="js/app.js"></script>
