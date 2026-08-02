@@ -7,8 +7,9 @@
  */
 
 const Hourly = (function () {
-  const PAD = { l: 36, r: 14, t: 20, b: 46 };
-  const H = 220;
+  // 底部依序放：天氣圖示 → 時刻/日期 → 日期/星期，三行都要留得下
+  const PAD = { l: 36, r: 14, t: 20, b: 66 };
+  const H = 240;
   const WD = ['日', '一', '二', '三', '四', '五', '六'];
 
   const weekday = (ds) => {
@@ -81,21 +82,26 @@ const Hourly = (function () {
       return `<text x="${x(i)}" y="${y(v) + dy}" class="${cls}">${v}</text>`;
     }).join('');
 
+    // 三行的基準線：圖示、第二行、第三行，彼此固定間距避免重疊
+    const yIco = H - PAD.b + 26;
+    const yR2 = H - PAD.b + 44;
+    const yR3 = H - PAD.b + 60;
+
     let foot = '';
     src.forEach((p, i) => {
       if (hourly) {
         const h = p.hhmm.slice(0, 2);
         const night = +h >= 18 || +h < 6;
-        if (i % 2 === 0) foot += `<text x="${x(i)}" y="${H - PAD.b + 24}" class="hb-ico">${Forecast.icon(p.weather, night)}</text>`;
-        foot += `<text x="${x(i)}" y="${H - PAD.b + 40}" class="hb-hr">${h}</text>`;
+        if (i % 2 === 0) foot += `<text x="${x(i)}" y="${yIco}" class="hb-ico">${Forecast.icon(p.weather, night)}</text>`;
+        foot += `<text x="${x(i)}" y="${yR2}" class="hb-hr">${h}</text>`;
         if (i === 0 || p.date !== src[i - 1].date) {
-          foot += `<text x="${x(i)}" y="${H - 4}" class="hb-date">${p.date.slice(5).replace('-', '/')}</text>
+          foot += `<text x="${x(i)}" y="${yR3}" class="hb-date">${p.date.slice(5).replace('-', '/')}</text>
             <line x1="${x(i) - STEP / 2}" y1="${PAD.t}" x2="${x(i) - STEP / 2}" y2="${H - PAD.b}" class="hb-day"/>`;
         }
       } else {
-        foot += `<text x="${x(i)}" y="${H - PAD.b + 24}" class="hb-ico">${Forecast.icon(p.weather, false)}</text>
-          <text x="${x(i)}" y="${H - PAD.b + 40}" class="hb-date">${p.date.slice(5).replace('-', '/')}</text>
-          <text x="${x(i)}" y="${H - 6}" class="hb-hr">週${weekday(p.date)}</text>`;
+        foot += `<text x="${x(i)}" y="${yIco}" class="hb-ico">${Forecast.icon(p.weather, false)}</text>
+          <text x="${x(i)}" y="${yR2}" class="hb-date">${p.date.slice(5).replace('-', '/')}</text>
+          <text x="${x(i)}" y="${yR3}" class="hb-hr">週${weekday(p.date)}</text>`;
       }
     });
 

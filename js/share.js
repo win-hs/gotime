@@ -101,6 +101,8 @@ const Share = (function () {
     return cv;
   }
 
+  const toBlob = (cv) => new Promise((res) => cv.toBlob(res, 'image/png'));
+
   function downloadCanvas(cv, filename) {
     cv.toBlob((blob) => {
       const url = URL.createObjectURL(blob);
@@ -109,6 +111,27 @@ const Share = (function () {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }, 'image/png');
+  }
+
+  /**
+   * 把圖直接複製到剪貼簿，可貼進 LINE／訊息／簡報。
+   * 需要 ClipboardItem（Chrome／Edge／Safari 有，Firefox 預設關閉），
+   * 不支援時退回下載檔案。
+   * @returns {Promise<'copied'|'downloaded'>}
+   */
+  async function copyCanvas(cv, filename) {
+    try {
+      if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) {
+        throw new Error('no clipboard image support');
+      }
+      // ⚠ 必須把 Promise<Blob> 直接交給 ClipboardItem，不可先 await 再寫入——
+      // 先 await 會耗掉使用者手勢的有效期，Safari 會直接拒絕寫入剪貼簿。
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': toBlob(cv) })]);
+      return 'copied';
+    } catch (_) {
+      downloadCanvas(cv, filename);
+      return 'downloaded';
+    }
   }
 
   /* ---------------- .ics（批次匯入 Google 日曆用） ---------------- */
@@ -165,5 +188,5 @@ const Share = (function () {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  return { buildText, buildImage, downloadCanvas, buildICS, downloadText };
+  return { buildText, buildImage, downloadCanvas, copyCanvas, buildICS, downloadText };
 })();

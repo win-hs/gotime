@@ -37,12 +37,27 @@ const App = (function () {
     toast._t = setTimeout(() => { el.className = 'toast'; }, 3200);
   }
 
+  let scrollLock = 0;
+
   function openOverlay(title, html) {
     $('overlay-title').textContent = title;
     $('overlay-body').innerHTML = html;
+    if (!$('overlay').classList.contains('show')) {
+      // 鎖住背景捲動，否則在對話框內滾到底會帶動後面的頁面
+      scrollLock = window.scrollY;
+      document.body.style.top = `-${scrollLock}px`;
+      document.body.classList.add('locked');
+    }
     $('overlay').classList.add('show');
   }
-  const closeOverlay = () => $('overlay').classList.remove('show');
+
+  function closeOverlay() {
+    if (!$('overlay').classList.contains('show')) return;
+    $('overlay').classList.remove('show');
+    document.body.classList.remove('locked');
+    document.body.style.top = '';
+    window.scrollTo(0, scrollLock);
+  }
 
   /* ---------- 造訪次數（沿用 Field-Box 家族的 abacus 計數器） ---------- */
 
@@ -156,22 +171,35 @@ const App = (function () {
         <div class="mm-i">${mo.illumination}%</div>
         <div class="mm-p">${esc(mo.phaseName.replace(/（.*）/, ''))}</div></div>`;
     }
+    const thisYear = +Astro.todayStr().slice(0, 4);
+    const years = [];
+    for (let v = thisYear - 20; v <= thisYear + 20; v++) years.push(v);
+    const yOpts = years.map((v) => `<option value="${v}"${v === y ? ' selected' : ''}>${v} 年</option>`).join('');
+    const mOpts = Array.from({ length: 12 }, (_, i) => i + 1)
+      .map((v) => `<option value="${v}"${v === m ? ' selected' : ''}>${v} 月</option>`).join('');
+
     openOverlay('整月月相', `
       <div class="mon-bar">
-        <button class="md-btn-out icon-only" id="mm-prev">◀</button>
-        <input type="month" id="mm-pick" value="${cur}">
-        <button class="md-btn-out icon-only" id="mm-next">▶</button>
+        <button class="md-btn-out icon-only" id="mm-prev" title="上個月">◀</button>
+        <select id="mm-year">${yOpts}</select>
+        <select id="mm-month">${mOpts}</select>
+        <button class="md-btn-out icon-only" id="mm-next" title="下個月">▶</button>
+        <button class="md-btn-out" id="mm-today">回到本月</button>
         <span class="mon-note">月相為本機天文計算，任意年月皆可查詢</span>
       </div>
       <div class="rule-help">照度為當日正午（臺灣時間）之值；亮面方向依北半球視角，盈相在右、虧相在左。</div>
       <div class="moon-month">${head}${cells}</div>`);
+
     const go = (delta) => {
       const d = new Date(Date.UTC(y, m - 1 + delta, 1));
       showMoonMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
     };
+    const pick = () => showMoonMonth(`${$('mm-year').value}-${String($('mm-month').value).padStart(2, '0')}`);
     $('mm-prev').addEventListener('click', () => go(-1));
     $('mm-next').addEventListener('click', () => go(1));
-    $('mm-pick').addEventListener('change', (e) => { if (e.target.value) showMoonMonth(e.target.value); });
+    $('mm-year').addEventListener('change', pick);
+    $('mm-month').addEventListener('change', pick);
+    $('mm-today').addEventListener('click', () => showMoonMonth(state.date.slice(0, 7)));
   }
 
   const loadingHTML = '<div class="state">載入中…</div>';
@@ -218,15 +246,11 @@ const App = (function () {
     }
   }
 
-  /** 整月潮汐：氣象署只提供未來約一個月，故年月選擇限制在資料範圍內 */
-  function showTideMonth(ym) {
+  /** 整月潮汐：氣象署只提供未來約一個月，全部列出即可，不需選月份 */
+  function showTideMonth() {
     if (!tideDays || !tideDays.length) { toast('潮汐資料尚未載入', true); return; }
     const first = tideDays[0].date, last = tideDays[tideDays.length - 1].date;
-    const months = [...new Set(tideDays.map((d) => d.date.slice(0, 7)))];
-    const cur = months.includes(ym) ? ym
-      : (months.includes(state.date.slice(0, 7)) ? state.date.slice(0, 7) : months[0]);
-
-    const rows = tideDays.filter((d) => d.date.slice(0, 7) === cur).map((d) => {
+    const rows = tideDays.map((d) => {
       const cells = d.times.map((t) =>
         `<span class="t ${t.tide === '滿潮' ? 'high' : 'low'}">${t.tide[0]} ${t.hhmm}<em>${t.cm}</em></span>`).join('');
       return `<tr class="${d.date === state.date ? 'cur' : ''}">
@@ -234,18 +258,13 @@ const App = (function () {
         <td><span class="range r${d.range}">${d.range}</span></td>
         <td class="times">${cells}</td></tr>`;
     }).join('');
-
-    const opts = months.map((m) =>
-      `<option value="${m}"${m === cur ? ' selected' : ''}>${m.replace('-', ' 年 ')} 月</option>`).join('');
     openOverlay(`整月潮汐　${tidePoint.name}`, `
       <div class="mon-bar">
-        <select id="tm-pick">${opts}</select>
-        <span class="mon-note">氣象署潮汐預報僅提供 ${first} ～ ${last}，可選月份以此為限</span>
+        <span class="mon-note">氣象署潮汐預報涵蓋 ${first} ～ ${last}（共 ${tideDays.length} 天），以下為全部資料</span>
       </div>
       <table class="tide-month">
         <thead><tr><th>日期</th><th>潮差</th><th>滿(高)／乾(低)潮時刻與潮高 cm</th></tr></thead>
         <tbody>${rows}</tbody></table>`);
-    $('tm-pick').addEventListener('change', (e) => showTideMonth(e.target.value));
   }
 
   /* ---------- 今天天氣（溫度曲線） ---------- */
@@ -438,14 +457,12 @@ const App = (function () {
         ${Plan.storageOK() ? '' : '<br><b>目前無法使用瀏覽器儲存（隱私模式？），修改不會保留。</b>'}
       </div>
       <div class="preset-row">
-        <div class="fav-wrap">
-          <button type="button" class="md-btn-out fav-toggle" id="set-toggle">
-            <span>規劃方案</span><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="fav-menu" id="set-menu"></div>
-        </div>
+        <button type="button" class="md-btn-out fav-toggle" id="set-toggle">
+          <span>規劃方案</span><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
         <button class="md-btn-out" id="set-add">★ 存成方案</button>
       </div>
+      <div class="preset-menu" id="set-menu"></div>
       <div id="rule-list">${rows}</div>
       <div class="rule-foot">
         <button class="md-btn-out" id="rule-add">新增規則</button><span style="flex:1"></span>
@@ -878,8 +895,10 @@ const App = (function () {
       else if (m === 'ics') exportICS();
       else if (m === 'image') {
         const d = shareData();
-        Share.downloadCanvas(Share.buildImage(d), `gotime-${state.date}-${d.place}.png`);
-        toast('分享圖已下載');
+        Share.copyCanvas(Share.buildImage(d), `gotime-${state.date}-${d.place}.png`)
+          .then((r) => toast(r === 'copied'
+            ? '分享圖已複製，可直接貼到對話框'
+            : '此瀏覽器不支援複製圖片，已改為下載', r !== 'copied'));
       }
     }));
 
