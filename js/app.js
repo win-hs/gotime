@@ -4,8 +4,11 @@ const App = (function () {
   const FAV_KEY = 'gotime.favs';
   const COUNTER_URL = 'https://abacus.jasoncameron.dev/hit/gotime-awen-9/live-visits';
   const RADAR_OPACITY = 0.5;    // 固定，不提供調整
-  const CWA_QPF = 'https://www.cwa.gov.tw/V8/C/P/QPF.html';
-  const CWA_RADAR = 'https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html';
+  const LINKS = {
+    'lnk-qpf': 'https://www.cwa.gov.tw/V8/C/P/QPF.html',
+    'lnk-radar': 'https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html',
+    'lnk-rain': 'https://watchapp.ncdr.nat.gov.tw/appv2',   // 落雨小幫手（NCDR）
+  };
 
   const state = {
     lat: CONFIG.DEFAULT_LAT,
@@ -133,13 +136,13 @@ const App = (function () {
           <div class="phase-sub">照度 ${m.illumination}%・${m.waxing ? '盈（漸圓）' : '虧（漸缺）'}</div>
         </div>
       </div>
-      <div class="table">${times}</div>
-      <div class="foot"><button class="md-btn-out" id="moon-month-btn">整月月相表</button></div>`;
-    $('moon-month-btn').addEventListener('click', showMoonMonth);
+      <div class="table">${times}</div>`;
   }
 
-  function showMoonMonth() {
-    const [y, m] = state.date.split('-').map(Number);
+  /** 整月月相：本機計算，年月不受資料範圍限制 */
+  function showMoonMonth(ym) {
+    const cur = ym || state.date.slice(0, 7);
+    const [y, m] = cur.split('-').map(Number);
     const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
     const lead = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
     const head = WD.map((w) => `<div class="mm-head">${w}</div>`).join('');
@@ -153,9 +156,22 @@ const App = (function () {
         <div class="mm-i">${mo.illumination}%</div>
         <div class="mm-p">${esc(mo.phaseName.replace(/（.*）/, ''))}</div></div>`;
     }
-    openOverlay(`整月月相　${y} 年 ${m} 月`,
-      `<div class="rule-help">照度為當日正午（臺灣時間）之值；亮面方向依北半球視角，盈相在右、虧相在左。</div>
-       <div class="moon-month">${head}${cells}</div>`);
+    openOverlay('整月月相', `
+      <div class="mon-bar">
+        <button class="md-btn-out icon-only" id="mm-prev">◀</button>
+        <input type="month" id="mm-pick" value="${cur}">
+        <button class="md-btn-out icon-only" id="mm-next">▶</button>
+        <span class="mon-note">月相為本機天文計算，任意年月皆可查詢</span>
+      </div>
+      <div class="rule-help">照度為當日正午（臺灣時間）之值；亮面方向依北半球視角，盈相在右、虧相在左。</div>
+      <div class="moon-month">${head}${cells}</div>`);
+    const go = (delta) => {
+      const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+      showMoonMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+    };
+    $('mm-prev').addEventListener('click', () => go(-1));
+    $('mm-next').addEventListener('click', () => go(1));
+    $('mm-pick').addEventListener('change', (e) => { if (e.target.value) showMoonMonth(e.target.value); });
   }
 
   const loadingHTML = '<div class="state">載入中…</div>';
@@ -180,8 +196,7 @@ const App = (function () {
 
       if (!tideDay) {
         body.innerHTML = head
-          + `<div class="state">此日期無潮汐預報<br><small>預報範圍 ${first} ～ ${last}</small></div>`
-          + `<div class="foot"><button class="md-btn-out" id="tide-month-btn">整月潮汐表</button></div>`;
+          + `<div class="state">此日期無潮汐預報<br><small>預報範圍 ${first} ～ ${last}</small></div>`;
       } else {
         const rows = tideDay.times.map((t) => `
           <div class="tr ${t.tide === '滿潮' ? 'high' : 'low'}">
@@ -191,10 +206,8 @@ const App = (function () {
           <div class="tide-meta">
             <span class="range r${tideDay.range}">${tideDay.range}潮</span>
             <span class="lunar">農曆 ${esc(tideDay.lunarDate.slice(5))}</span></div>
-          <div class="table">${rows}</div>
-          <div class="foot"><button class="md-btn-out" id="tide-month-btn">整月潮汐表</button></div>`;
+          <div class="table">${rows}</div>`;
       }
-      $('tide-month-btn').addEventListener('click', showTideMonth);
     } catch (e) {
       if (seq !== reqSeq) return;
       tideDay = null; tideDays = null;
@@ -205,9 +218,15 @@ const App = (function () {
     }
   }
 
-  function showTideMonth() {
-    if (!tideDays) return;
-    const rows = tideDays.map((d) => {
+  /** 整月潮汐：氣象署只提供未來約一個月，故年月選擇限制在資料範圍內 */
+  function showTideMonth(ym) {
+    if (!tideDays || !tideDays.length) { toast('潮汐資料尚未載入', true); return; }
+    const first = tideDays[0].date, last = tideDays[tideDays.length - 1].date;
+    const months = [...new Set(tideDays.map((d) => d.date.slice(0, 7)))];
+    const cur = months.includes(ym) ? ym
+      : (months.includes(state.date.slice(0, 7)) ? state.date.slice(0, 7) : months[0]);
+
+    const rows = tideDays.filter((d) => d.date.slice(0, 7) === cur).map((d) => {
       const cells = d.times.map((t) =>
         `<span class="t ${t.tide === '滿潮' ? 'high' : 'low'}">${t.tide[0]} ${t.hhmm}<em>${t.cm}</em></span>`).join('');
       return `<tr class="${d.date === state.date ? 'cur' : ''}">
@@ -215,10 +234,18 @@ const App = (function () {
         <td><span class="range r${d.range}">${d.range}</span></td>
         <td class="times">${cells}</td></tr>`;
     }).join('');
+
+    const opts = months.map((m) =>
+      `<option value="${m}"${m === cur ? ' selected' : ''}>${m.replace('-', ' 年 ')} 月</option>`).join('');
     openOverlay(`整月潮汐　${tidePoint.name}`, `
+      <div class="mon-bar">
+        <select id="tm-pick">${opts}</select>
+        <span class="mon-note">氣象署潮汐預報僅提供 ${first} ～ ${last}，可選月份以此為限</span>
+      </div>
       <table class="tide-month">
         <thead><tr><th>日期</th><th>潮差</th><th>滿(高)／乾(低)潮時刻與潮高 cm</th></tr></thead>
         <tbody>${rows}</tbody></table>`);
+    $('tm-pick').addEventListener('change', (e) => showTideMonth(e.target.value));
   }
 
   /* ---------- 今天天氣（溫度曲線） ---------- */
@@ -232,12 +259,8 @@ const App = (function () {
       body.innerHTML = `
         <div class="src">預報鄉鎮：<b>${esc(town.county)}${esc(town.name)}</b>
           <span class="dist">距 ${town.dist.toFixed(1)} km</span>
-          <span class="kind">逐${sr.hourly ? '3' : '12'}小時</span></div>`
-        + Hourly.render(sr)
-        + `<div class="foot cwa-links">
-            <a class="md-btn-out" href="${CWA_QPF}" target="_blank" rel="noopener">開啟中央氣象署定量降水預報圖</a>
-            <a class="md-btn-out" href="${CWA_RADAR}" target="_blank" rel="noopener">開啟中央氣象署天氣預報雷達回波</a>
-          </div>`;
+          <span class="kind">${sr.hourly ? '逐 3 小時' : '逐日高低溫'}</span></div>`
+        + Hourly.render(sr);
     } catch (e) {
       if (seq !== reqSeq) return;
       body.innerHTML = errorHTML(e.message, 'hourly-retry');
@@ -541,41 +564,80 @@ const App = (function () {
     }));
   }
 
+  /**
+   * 就地輸入名稱的小浮層。
+   * 不用 window.prompt——部分瀏覽器（尤其對話框內或已封鎖彈出視窗時）會直接無視它，
+   * 導致「★ 存成方案」按了沒反應。
+   */
+  function askName(hostEl, defVal, onOk) {
+    document.querySelectorAll('.name-pop').forEach((e) => e.remove());
+    const pop = document.createElement('div');
+    pop.className = 'name-pop';
+    pop.innerHTML = `<input type="text" class="np-in" value="${esc(defVal)}" maxlength="30">
+      <button type="button" class="md-btn-fill np-ok">確定</button>
+      <button type="button" class="md-btn-out np-cancel">取消</button>`;
+    const host = hostEl.closest('.preset-row') || hostEl.closest('.loc-row') || hostEl.parentNode;
+    host.parentNode.insertBefore(pop, host.nextSibling);
+    const input = pop.querySelector('.np-in');
+    input.focus(); input.select();
+    const close = () => pop.remove();
+    const ok = () => { const v = input.value.trim(); close(); onOk(v || defVal); };
+    pop.querySelector('.np-ok').addEventListener('click', ok);
+    pop.querySelector('.np-cancel').addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); ok(); }
+      else if (e.key === 'Escape') { e.preventDefault(); close(); }
+    });
+    pop.addEventListener('click', (e) => e.stopPropagation());
+  }
+
   function saveRuleSet() {
     collectRules();
-    const name = prompt('方案名稱：', '我的調查方案');
-    if (name === null) return;
-    const list = Plan.loadSets();
-    list.push({ name: name.trim() || '未命名方案', rules: Plan.clone(rules) });
-    if (!Plan.saveSets(list)) { toast('無法寫入瀏覽器儲存', true); return; }
-    renderRuleSets();
-    toast('已存成方案');
+    askName($('set-add'), '我的調查方案', (name) => {
+      const list = Plan.loadSets();
+      list.push({ name, rules: Plan.clone(rules) });
+      if (!Plan.saveSets(list)) { toast('無法寫入瀏覽器儲存', true); return; }
+      renderRuleSets();
+      toast(`已存成方案「${name}」`);
+    });
   }
 
   /* ---------- 分享 ---------- */
 
-  function shareText() {
-    const place = town ? town.county + town.name : `${state.lat.toFixed(4)}, ${state.lon.toFixed(4)}`;
+  /** 給 Share 模組的統一資料包 */
+  function shareData() {
     const ctx = planContext();
     const sunRow = (k) => (ctx.sun.rows.find((r) => r.key === k) || {}).text || '—';
-    const lines = [
-      `【開工吉時】${state.date.replace(/-/g, '/')}（週${weekdayOf(state.date)}）`,
-      `地點：${place}（${state.lat.toFixed(5)}, ${state.lon.toFixed(5)}）`,
-      '',
-    ];
-    for (const { rule, items, reason } of computeWindows()) {
-      if (!items.length) { lines.push(`${rule.name}：${reason || '無可用時段'}`); continue; }
-      lines.push(`${rule.name}（${Plan.ruleText(rule)}）`);
-      for (const w of items) lines.push(`  ${hhmm(w.start)} - ${hhmm(w.end)}　${durText(w.start, w.end)}`);
+    return {
+      date: state.date, weekday: weekdayOf(state.date),
+      place: town ? town.county + town.name : `${state.lat.toFixed(4)}, ${state.lon.toFixed(4)}`,
+      lat: state.lat, lon: state.lon,
+      blocks: computeWindows(),
+      sunrise: sunRow('sunrise'), sunset: sunRow('sunset'),
+      moonName: ctx.moon.phaseName, moonIllum: ctx.moon.illumination,
+      tide: ctx.tideDay, tideName: tidePoint ? tidePoint.name : '—',
+      hhmm, dur: durText,
+    };
+  }
+
+  function exportICS() {
+    const d = shareData();
+    const events = [];
+    for (const b of d.blocks) {
+      for (const w of b.items) {
+        events.push({
+          title: `${b.rule.name}　${d.place}`, start: w.start, end: w.end,
+          desc: [`日出 ${d.sunrise}　日落 ${d.sunset}`,
+            `月相 ${d.moonName}（照度 ${d.moonIllum}%）`,
+            `座標 ${d.lat.toFixed(5)}, ${d.lon.toFixed(5)}`,
+            '— 由 GoTime 開工吉時產生'].join('\n'),
+        });
+      }
     }
-    lines.push('');
-    lines.push(`日出 ${sunRow('sunrise')}／日落 ${sunRow('sunset')}`);
-    lines.push(`月相 ${ctx.moon.phaseName} 照度 ${ctx.moon.illumination}%`);
-    if (ctx.tideDay) {
-      lines.push(`潮汐（${tidePoint.name}）${ctx.tideDay.range}潮：`
-        + ctx.tideDay.times.map((t) => `${t.tide}${t.hhmm}`).join('、'));
-    }
-    return lines.join('\n');
+    if (!events.length) { toast('目前沒有可匯出的時段', true); return; }
+    Share.downloadText(Share.buildICS(events, { lat: d.lat, lon: d.lon, place: d.place }),
+      `gotime-${state.date}-${d.place}.ics`);
+    toast(`已匯出 ${events.length} 個時段，到 Google 日曆「設定 → 匯入」即可一次加入`);
   }
 
   async function copyText(txt, okMsg) {
@@ -621,15 +683,14 @@ const App = (function () {
 
   function addFav() {
     const suggested = town ? town.county + town.name : `${state.lat.toFixed(3)}, ${state.lon.toFixed(3)}`;
-    const name = prompt('常用地點名稱：', suggested);
-    if (name === null) return;
-    const favs = loadFavs();
-    const finalName = name.trim() || suggested;
-    favs.push({ name: finalName, lat: state.lat, lon: state.lon });
-    if (!saveFavs(favs)) { toast('無法寫入瀏覽器儲存', true); return; }
-    renderFavs();
-    $('fav-current').textContent = finalName;
-    toast('已加入常用');
+    askName($('fav-add'), suggested, (name) => {
+      const favs = loadFavs();
+      favs.push({ name, lat: state.lat, lon: state.lon });
+      if (!saveFavs(favs)) { toast('無法寫入瀏覽器儲存', true); return; }
+      renderFavs();
+      $('fav-current').textContent = name;
+      toast(`已加入常用「${name}」`);
+    });
   }
 
   /* ---------- 搜尋 ---------- */
@@ -743,13 +804,20 @@ const App = (function () {
   }
   const setDate = (d) => { state.date = d; renderAll(); };
 
+  /** 面板與天氣預報卡各有一組 3天／1週切換，兩邊同步 */
   function renderRangeSeg() {
-    $('range-seg').innerHTML = Settings.RANGES.map((r) =>
+    const html = Settings.RANGES.map((r) =>
       `<button class="seg-btn${Settings.days() === r.id ? ' on' : ''}" data-d="${r.id}">${r.label}</button>`).join('');
-    $('range-seg').querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
-      Settings.setDays(+b.dataset.d); renderRangeSeg();
-      const s = ++reqSeq; renderForecast(s); renderHourly(s);
-    }));
+    for (const id of ['range-seg', 'range-seg2']) {
+      const box = $(id);
+      if (!box) continue;
+      box.innerHTML = html;
+      box.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
+        Settings.setDays(+b.dataset.d);
+        renderRangeSeg();
+        const s = ++reqSeq; renderForecast(s); renderHourly(s);
+      }));
+    }
   }
 
   /* ---------- 事件 ---------- */
@@ -804,9 +872,20 @@ const App = (function () {
     });
     $('share-menu').querySelectorAll('.share-item').forEach((b) => b.addEventListener('click', () => {
       $('share-menu').classList.remove('show');
-      if (b.dataset.m === 'text') copyText(shareText(), '純文字已複製，可直接貼上');
-      else copyText(fullShareURL(), '連結已複製（含所有設定）');
+      const m = b.dataset.m;
+      if (m === 'text') copyText(Share.buildText(shareData()), '純文字已複製，可直接貼上');
+      else if (m === 'link') copyText(fullShareURL(), '連結已複製（含所有設定）');
+      else if (m === 'ics') exportICS();
+      else if (m === 'image') {
+        const d = shareData();
+        Share.downloadCanvas(Share.buildImage(d), `gotime-${state.date}-${d.place}.png`);
+        toast('分享圖已下載');
+      }
     }));
+
+    $('moon-month-btn').addEventListener('click', () => showMoonMonth());
+    $('tide-month-btn').addEventListener('click', () => showTideMonth());
+    for (const [id, url] of Object.entries(LINKS)) $(id).href = url;
 
     document.querySelectorAll('.card-ck').forEach((ck) => ck.addEventListener('change', () => {
       Settings.set(ck.dataset.id, ck.checked);

@@ -86,7 +86,8 @@ const Forecast = (function () {
     if (opt.show.moon) {
       rows.push(dayRow('月相', (d) => {
         const m = Astro.moon(d, opt.lat, opt.lon);
-        return `${Astro.moonSVG(m.phase, 26)}<span class="fc-sm"> ${esc(m.phaseName.replace(/（.*）/, ''))} ${m.illumination}%</span>`;
+        return `<div class="fc-moon">${Astro.moonSVG(m.phase, 26)}
+          <span class="fc-sm">${esc(m.phaseName.replace(/（.*）/, ''))} ${m.illumination}%</span></div>`;
       }));
     }
     if (opt.show.tide && opt.tideDays) {
@@ -94,9 +95,11 @@ const Forecast = (function () {
       rows.push(dayRow('潮汐', (d) => {
         const t = byTide.get(d);
         if (!t) return '—';
+        // 逐潮次一行（橫排會換行難讀）
         const times = t.times.map((x) =>
-          `<span class="fc-t ${x.tide === '滿潮' ? 'high' : 'low'}">${x.tide[0]} ${x.hhmm}</span>`).join(' ');
-        return `<span class="range r${t.range}">${t.range}</span> ${times}`;
+          `<div class="fc-t ${x.tide === '滿潮' ? 'high' : 'low'}">${x.tide[0]} ${x.hhmm}</div>`).join('');
+        return `<div class="fc-tide"><span class="range r${t.range}">${t.range}</span>
+          <div class="fc-tlist">${times}</div></div>`;
       }));
     }
 

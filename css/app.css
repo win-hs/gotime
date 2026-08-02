@@ -159,8 +159,18 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 }
 .cards .card { margin-bottom: 0; }
 .card > h2 {
-  font-size: 14px; font-weight: 500; margin: 0; padding: 12px 16px;
-  border-bottom: 1px solid var(--md-outline); display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 500; margin: 0; padding: 10px 16px;
+  border-bottom: 1px solid var(--md-outline);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-height: 48px;
+}
+.h-title { flex: none; }
+.h-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.h-tools .md-chip { text-decoration: none; }
+.src-tag { font-size: 11px; color: var(--hint); font-weight: 400; }
+.src-tag + .src-tag, .h-tools .md-chip + .src-tag { margin-left: 6px; }
+@media (max-width: 700px) {
+  .card > h2 { padding: 10px 12px; }
+  .h-tools { margin-left: 0; width: 100%; }
 }
 .card-body { padding: 12px 16px 14px; }
 
@@ -276,9 +286,15 @@ td.fc-sm, .fc-sm { font-size: 12px; color: var(--muted); white-space: nowrap; }
 td.fc-span { background: #fcfcfd; }
 .fc-sun { color: var(--sunrise); font-family: var(--font-mono); white-space: nowrap; }
 .fc-set { color: var(--sunset); font-family: var(--font-mono); white-space: nowrap; }
-.fc-t { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.fc-t { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; line-height: 1.5; }
 .fc-t.high { color: var(--tide-high); }
 .fc-t.low { color: var(--tide-low); }
+/* 潮汐：潮差徽章置左，各潮次逐行 */
+.fc-tide { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.fc-tlist { text-align: left; }
+/* 月相：圖與文字垂直置中 */
+.fc-moon { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.fc-moon .moon-svg { flex: none; }
 .mx-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
 
 /* ===== 今天天氣：溫度曲線 ===== */
@@ -330,6 +346,18 @@ td.fc-span { background: #fcfcfd; }
 .tw-row { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 9px; margin-bottom: 6px;
   border-bottom: 1px solid var(--md-outline); }
 .ck.locked { color: var(--hint); cursor: default; }
+
+/* ===== 就地命名浮層（取代 window.prompt） ===== */
+.name-pop {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 10px; margin: 8px 0;
+  background: var(--md-primary-container); border-radius: var(--radius);
+}
+.name-pop .np-in { flex: 1 1 160px; min-width: 120px; }
+
+/* ===== 年月選擇列 ===== */
+.mon-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 0 12px; }
+.mon-note { font-size: 12px; color: var(--muted); }
 
 /* ===== 規劃方案 ===== */
 .preset-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }

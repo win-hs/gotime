@@ -94,6 +94,10 @@
           <div class="share-menu" id="share-menu">
             <button type="button" class="share-item" data-m="text">
               複製純文字<small>可直接貼到 LINE／訊息，格式不跑掉</small></button>
+            <button type="button" class="share-item" data-m="image">
+              下載分享圖<small>極簡時段圖，適合貼訊息或簡報</small></button>
+            <button type="button" class="share-item" data-m="ics">
+              匯出 .ics 行事曆<small>所有時段一次匯入 Google 日曆</small></button>
             <button type="button" class="share-item" data-m="link">
               複製本頁面連結<small>含目前位置、日期與所有顯示設定</small></button>
           </div>
@@ -104,12 +108,20 @@
 
   <!-- ===== 卡片 ===== -->
   <section class="card" id="card-multi">
-    <h2>📅 天氣預報</h2>
+    <h2><span class="h-title">📅 天氣預報</span>
+      <span class="h-tools"><div class="seg" id="range-seg2"></div></span></h2>
     <div class="card-body" id="multi-body"></div>
   </section>
 
   <section class="card" id="card-hourly">
-    <h2>🌤️ 今天天氣</h2>
+    <h2><span class="h-title">🌤️ 今天天氣</span>
+      <span class="h-tools">
+        <span class="src-tag">中央氣象署</span>
+        <a class="md-chip" id="lnk-radar" target="_blank" rel="noopener">雷達回波</a>
+        <a class="md-chip" id="lnk-qpf" target="_blank" rel="noopener">定量降水預報</a>
+        <span class="src-tag">NCDR</span>
+        <a class="md-chip" id="lnk-rain" target="_blank" rel="noopener">落雨小幫手</a>
+      </span></h2>
     <div class="card-body" id="hourly-body"></div>
   </section>
 
@@ -120,13 +132,15 @@
     </section>
 
     <section class="card" id="card-moon">
-      <h2>🌗 月相</h2>
+      <h2><span class="h-title">🌗 月相</span>
+        <span class="h-tools"><button class="md-chip" id="moon-month-btn">整月月相表</button></span></h2>
       <div class="card-body" id="moon-body"></div>
     </section>
   </div>
 
   <section class="card" id="card-tide">
-    <h2>🌊 潮汐</h2>
+    <h2><span class="h-title">🌊 潮汐</span>
+      <span class="h-tools"><button class="md-chip" id="tide-month-btn">整月潮汐表</button></span></h2>
     <div class="card-body" id="tide-body"></div>
   </section>
 
@@ -160,6 +174,7 @@
 <script src="js/forecast.js"></script>
 <script src="js/hourly.js"></script>
 <script src="js/plan.js"></script>
+<script src="js/share.js"></script>
 <script src="js/map.js"></script>
 <script src="js/app.js"></script>
 </body>
