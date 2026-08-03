@@ -4,13 +4,15 @@ const Settings = (function () {
   const KEY = 'gotime.display';
 
   // 面板上的勾選框；同時決定天氣預報表要出現哪些列
+  // obs 與 weather 為主資料，不可取消
   const CARDS = [
-    { id: 'weather', label: '天氣', locked: true },   // 主資料，不可取消
+    { id: 'obs', label: '即時觀測', locked: true },
+    { id: 'weather', label: '天氣', locked: true },
     { id: 'moon', label: '月相' },
     { id: 'sun', label: '日出/落' },
     { id: 'tide', label: '潮汐' },
-    { id: 'obs', label: '即時觀測' },
   ];
+  const LOCKED = CARDS.filter((c) => c.locked).map((c) => c.id);
 
   // 日出/落卡裡可勾選的曙暮光（各含晨昏兩個時刻）
   const TWILIGHTS = [
@@ -22,7 +24,7 @@ const Settings = (function () {
   const RANGES = [{ id: 3, label: '3 天' }, { id: 7, label: '1 週' }];
 
   const DEFAULTS = {
-    cards: { weather: true, moon: true, sun: true, tide: true, obs: true },
+    cards: { obs: true, weather: true, moon: true, sun: true, tide: true },
     tw: { twAstro: true, twNautical: true, twCivil: true },
     days: 7,
     radar: false,   // 需下載約 700 KB 回波圖，預設不開
@@ -48,7 +50,7 @@ const Settings = (function () {
         if (s && typeof s.radar === 'boolean') current.radar = s.radar;
       }
     } catch (_) { /* 壞掉的設定直接用預設 */ }
-    current.cards.weather = true;   // 天氣為主資料，強制開啟
+    for (const id of LOCKED) current.cards[id] = true;   // 主資料強制開啟
     return current;
   }
 
@@ -63,7 +65,7 @@ const Settings = (function () {
   const radar = () => load().radar === true;
 
   function set(id, val) {
-    if (id === 'weather') return false;            // 不可關閉
+    if (LOCKED.includes(id)) return false;         // 不可關閉
     load().cards[id] = !!val; return save();
   }
   function setTw(id, val) { load().tw[id] = !!val; return save(); }
@@ -79,7 +81,7 @@ const Settings = (function () {
     if (s.tw) Object.assign(current.tw, s.tw);
     if (s.days === 3 || s.days === 7) current.days = s.days;
     if (typeof s.radar === 'boolean') current.radar = s.radar;
-    current.cards.weather = true;
+    for (const id of LOCKED) current.cards[id] = true;
     save();
   }
 

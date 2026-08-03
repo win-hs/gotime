@@ -78,11 +78,11 @@
       </div>
 
       <div class="toggle-row">
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="obs"> 即時觀測</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="weather"> 天氣</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="moon"> 月相</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="sun"> 日出/落</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="tide"> 潮汐</label>
-        <label class="ck"><input type="checkbox" class="card-ck" data-id="obs"> 即時觀測</label>
         <span class="grow"></span>
         <button class="md-chip" id="radar-btn">雷達回波開啟</button>
       </div>
@@ -105,6 +105,19 @@
   </div>
 
   <!-- ===== 卡片 ===== -->
+  <section class="card" id="card-obs">
+    <h2><span class="h-title">🌡️ 即時觀測</span>
+      <span class="h-tools">
+        <button class="md-chip" id="obs-refresh">重新整理</button>
+        <span class="src-tag">中央氣象署</span>
+        <a class="md-chip" id="lnk-radar" target="_blank" rel="noopener">雷達回波</a>
+        <a class="md-chip" id="lnk-qpf" target="_blank" rel="noopener">定量降水預報</a>
+        <span class="src-tag">NCDR</span>
+        <a class="md-chip" id="lnk-rain" target="_blank" rel="noopener">落雨小幫手</a>
+      </span></h2>
+    <div class="card-body" id="obs-body"></div>
+  </section>
+
   <section class="card" id="card-multi">
     <h2><span class="h-title">📅 天氣預報</span>
       <span class="h-tools"><div class="seg" id="range-seg2"></div></span></h2>
@@ -112,23 +125,9 @@
   </section>
 
   <section class="card" id="card-hourly">
-    <h2><span class="h-title">🌤️ 今天天氣</span>
-      <span class="h-tools">
-        <div class="seg" id="range-seg3"></div>
-        <span class="src-tag">中央氣象署</span>
-        <a class="md-chip" id="lnk-radar" target="_blank" rel="noopener">雷達回波</a>
-        <a class="md-chip" id="lnk-qpf" target="_blank" rel="noopener">定量降水預報</a>
-        <span class="src-tag">NCDR</span>
-        <a class="md-chip" id="lnk-rain" target="_blank" rel="noopener">落雨小幫手</a>
-      </span></h2>
+    <h2><span class="h-title">📈 溫度曲線</span>
+      <span class="h-tools"><div class="seg" id="range-seg3"></div></span></h2>
     <div class="card-body" id="hourly-body"></div>
-  </section>
-
-  <section class="card" id="card-obs">
-    <h2><span class="h-title">🌡️ 即時觀測</span>
-      <span class="h-tools"><span class="src-tag">中央氣象署自動氣象站</span>
-        <button class="md-chip" id="obs-refresh">重新整理</button></span></h2>
-    <div class="card-body" id="obs-body"></div>
   </section>
 
   <div class="cards">

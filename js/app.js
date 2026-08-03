@@ -344,10 +344,14 @@ const App = (function () {
     try {
       const st = await Observe.nearest(state.lat, state.lon, 3);
       if (seq !== reqSeq) return;
-      if (!st.length) { body.innerHTML = '<div class="state">查無鄰近測站</div>'; return; }
+      if (!st.length) {
+        GMap.clearStation();
+        body.innerHTML = '<div class="state">查無鄰近測站</div>'; return;
+      }
 
       const v = (x, u) => (x === null ? '—' : x + (u || ''));
       const main = st[0];
+      GMap.setStation(main);   // 地圖上以紅點標出最近測站
       const item = (lbl, val) => `<div class="ob-item"><span class="ob-l">${lbl}</span><span class="ob-v">${val}</span></div>`;
       const others = st.slice(1).map((s) => `
         <div class="ob-row">
@@ -845,6 +849,7 @@ const App = (function () {
       const el = $('card-' + c.id);
       if (el) el.hidden = !Settings.on(c.id);
     }
+    if (!Settings.on('obs')) GMap.clearStation();
     document.querySelectorAll('.card-ck').forEach((ck) => {
       const locked = (Settings.CARDS.find((c) => c.id === ck.dataset.id) || {}).locked;
       ck.checked = Settings.on(ck.dataset.id);

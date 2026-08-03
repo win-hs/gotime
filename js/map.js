@@ -1,7 +1,7 @@
 /* Leaflet 地圖：點選取點，可視範圍限制在台灣；雷達回波疊圖 */
 
 const GMap = (function () {
-  let map = null, marker = null, onPick = null, radarLayer = null;
+  let map = null, marker = null, onPick = null, radarLayer = null, stationLayer = null;
 
   // Material red 圖釘（取代 Leaflet 預設藍色）
   const PIN = L.divIcon({
@@ -72,8 +72,29 @@ const GMap = (function () {
     if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; }
   }
 
+  /** 最近的自動氣象站：紅點＋站名／鄉鎮／觀測時間 */
+  function setStation(st) {
+    clearStation();
+    if (!st) return;
+    stationLayer = L.circleMarker([st.lat, st.lon], {
+      radius: 7, color: '#fff', weight: 2,
+      fillColor: '#d93025', fillOpacity: 1,
+    }).bindTooltip(`${st.name}（${st.town}）`, { direction: 'top', offset: [0, -6] })
+      .bindPopup(
+        `<b>${st.name}</b><br>${st.county}${st.town}`
+        + `<br>觀測時間 ${st.time.slice(0, 16).replace('T', ' ')}`
+        + (st.alt !== null ? `<br>海拔 ${Math.round(st.alt)} m` : '')
+        + `<br>距選取位置 ${st.dist.toFixed(1)} km`
+      );
+    stationLayer.addTo(map);
+  }
+
+  function clearStation() {
+    if (stationLayer) { map.removeLayer(stationLayer); stationLayer = null; }
+  }
+
   return {
-    init, setMarker, setRadar, clearRadar,
+    init, setMarker, setRadar, clearRadar, setStation, clearStation,
     get instance() { return map; },
   };
 })();
