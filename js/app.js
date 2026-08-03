@@ -335,6 +335,57 @@ const App = (function () {
     } finally { btn.disabled = false; }
   }
 
+  /* ---------- 即時觀測 ---------- */
+
+  async function renderObs(seq) {
+    if (!Settings.on('obs')) return;
+    const body = $('obs-body');
+    body.innerHTML = loadingHTML;
+    try {
+      const st = await Observe.nearest(state.lat, state.lon, 3);
+      if (seq !== reqSeq) return;
+      if (!st.length) { body.innerHTML = '<div class="state">查無鄰近測站</div>'; return; }
+
+      const v = (x, u) => (x === null ? '—' : x + (u || ''));
+      const main = st[0];
+      const item = (lbl, val) => `<div class="ob-item"><span class="ob-l">${lbl}</span><span class="ob-v">${val}</span></div>`;
+      const others = st.slice(1).map((s) => `
+        <div class="ob-row">
+          <div class="ob-name">${esc(s.name)}<small>${esc(s.town)}・${s.dist.toFixed(1)} km${s.alt !== null ? '・' + Math.round(s.alt) + ' m' : ''}</small></div>
+          <div class="ob-mini">
+            <span>${esc(s.weather || '—')}</span>
+            <span class="ob-t">${v(s.temp, '°')}</span>
+            <span>濕 ${v(s.humid, '%')}</span>
+            <span>雨 ${v(s.rain, ' mm')}</span>
+            <span>${s.dir || '—'} ${v(s.beaufort, ' 級')}</span>
+          </div></div>`).join('');
+
+      body.innerHTML = `
+        <div class="src">最近測站：<b>${esc(main.name)}</b>
+          <span class="kind">${esc(main.county)}${esc(main.town)}</span>
+          <span class="dist">距 ${main.dist.toFixed(1)} km</span>
+          ${main.alt !== null ? `<span class="dist">海拔 ${Math.round(main.alt)} m</span>` : ''}
+          <span class="dist">觀測 ${main.time.slice(11, 16)}</span></div>
+        <div class="ob-main">
+          <div class="ob-temp">${v(main.temp, '')}<span class="ob-unit">°C</span>
+            <div class="ob-wx">${Forecast.icon(main.weather, false)} ${esc(main.weather || '—')}</div></div>
+          <div class="ob-grid">
+            ${item('相對濕度', v(main.humid, ' %'))}
+            ${item('本時段雨量', v(main.rain, ' mm'))}
+            ${item('風', `${main.dir || '—'} ${v(main.wind, ' m/s')}${main.beaufort !== null ? `（${main.beaufort} 級）` : ''}`)}
+            ${item('最大陣風', v(main.gust, ' m/s'))}
+            ${item('今日最高', v(main.tHigh, ' °C'))}
+            ${item('今日最低', v(main.tLow, ' °C'))}
+          </div>
+        </div>
+        ${others ? `<div class="ob-others"><div class="ob-others-h">其他鄰近測站</div>${others}</div>` : ''}`;
+    } catch (e) {
+      if (seq !== reqSeq) return;
+      body.innerHTML = errorHTML(e.message, 'obs-retry');
+      $('obs-retry').addEventListener('click', () => { const s = ++reqSeq; renderObs(s); });
+    }
+  }
+
   /* ---------- 調查規劃 ---------- */
 
   function planContext() {
@@ -428,16 +479,19 @@ const App = (function () {
       <div id="plan-result">${blocks}</div>`;
   }
 
-  /** 偏移欄以帶符號的文字呈現（正數顯示 +），數字輸入框無法顯示 + 號 */
-  const signed = (n) => (n > 0 ? '+' + n : String(n));
-
+  /** 正負號改用下拉，數字欄只填絕對值 */
   function sideEditor(side, r) {
     const opts = Plan.ANCHORS.map((a) =>
       `<option value="${a.id}"${a.id === r.anchor ? ' selected' : ''}>${a.label}</option>`).join('');
     const timeInput = Plan.isFixed(r.anchor)
       ? `<input type="time" class="r-${side}t" value="${esc(r.time || '06:00')}">` : '';
+    const neg = r.offset < 0;
     return `<select class="r-${side}a">${opts}</select>${timeInput}
-      <input type="text" inputmode="numeric" class="r-${side}o off-in" value="${signed(r.offset)}"><span>分</span>`;
+      <select class="r-${side}s sign-in">
+        <option value="1"${neg ? '' : ' selected'}>＋</option>
+        <option value="-1"${neg ? ' selected' : ''}>－</option>
+      </select>
+      <input type="number" min="0" step="5" class="r-${side}o off-in" value="${Math.abs(r.offset)}"><span>分</span>`;
   }
 
   function showRuleEditor() {
@@ -536,19 +590,19 @@ const App = (function () {
     const out = [];
     document.querySelectorAll('.rule-row').forEach((row, i) => {
       const q = (c) => row.querySelector(c);
-      const side = (a, t, o) => {
+      const side = (a, t, o, sg) => {
         const anchor = q(a).value;
-        // 允許使用者輸入 +30／30／-30
-        const raw = q(o) ? String(q(o).value).replace(/[＋]/g, '+').replace(/[−–—]/g, '-') : '0';
-        const s = { anchor, offset: parseInt(raw, 10) || 0 };
+        const mag = Math.abs(parseInt(q(o) ? q(o).value : '0', 10) || 0);
+        const sign = q(sg) && q(sg).value === '-1' ? -1 : 1;
+        const s = { anchor, offset: mag * sign };
         if (Plan.isFixed(anchor)) s.time = (q(t) && q(t).value) || '06:00';
         return s;
       };
       out.push({
         id: rules[i] ? rules[i].id : 'r' + Date.now() + i,
         name: q('.r-name').value.trim() || '未命名規則',
-        start: side('.r-sa', '.r-st', '.r-so'),
-        end: side('.r-ea', '.r-et', '.r-eo'),
+        start: side('.r-sa', '.r-st', '.r-so', '.r-ss'),
+        end: side('.r-ea', '.r-et', '.r-eo', '.r-es'),
       });
     });
     rules = out;
@@ -816,6 +870,7 @@ const App = (function () {
     const seq = ++reqSeq;
     renderTide(seq).then(() => afterTide(seq));
     renderHourly(seq);
+    renderObs(seq);
     syncURL();
   }
 
@@ -909,6 +964,7 @@ const App = (function () {
 
     $('moon-month-btn').addEventListener('click', () => showMoonMonth());
     $('tide-month-btn').addEventListener('click', () => showTideMonth());
+    $('obs-refresh').addEventListener('click', () => { const s = ++reqSeq; renderObs(s); });
     for (const [id, url] of Object.entries(LINKS)) $(id).href = url;
 
     document.querySelectorAll('.card-ck').forEach((ck) => ck.addEventListener('change', () => {
@@ -942,7 +998,7 @@ const App = (function () {
     try {
       await Geo.load();
     } catch (_) {
-      for (const id of ['tide-body', 'hourly-body', 'multi-body']) {
+      for (const id of ['tide-body', 'hourly-body', 'multi-body', 'obs-body']) {
         const el = $(id);
         if (el) el.innerHTML = '<div class="state err">地點對照檔載入失敗</div>';
       }

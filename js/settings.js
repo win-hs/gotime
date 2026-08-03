@@ -9,6 +9,7 @@ const Settings = (function () {
     { id: 'moon', label: '月相' },
     { id: 'sun', label: '日出/落' },
     { id: 'tide', label: '潮汐' },
+    { id: 'obs', label: '即時觀測' },
   ];
 
   // 日出/落卡裡可勾選的曙暮光（各含晨昏兩個時刻）
@@ -21,7 +22,7 @@ const Settings = (function () {
   const RANGES = [{ id: 3, label: '3 天' }, { id: 7, label: '1 週' }];
 
   const DEFAULTS = {
-    cards: { weather: true, moon: true, sun: true, tide: true },
+    cards: { weather: true, moon: true, sun: true, tide: true, obs: true },
     tw: { twAstro: true, twNautical: true, twCivil: true },
     days: 7,
     radar: false,   // 需下載約 700 KB 回波圖，預設不開
