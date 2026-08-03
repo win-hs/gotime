@@ -427,7 +427,7 @@ const App = (function () {
       if (!items.length) {
         return `<div class="ps-rule"><span class="ps-name">${esc(rule.name)}</span>
           <span class="ps-def">${esc(Plan.ruleText(rule))}</span>
-          <div class="ps-none">${esc(reason || '無可用時段')}</div></div>`;
+          <div class="ps-none err">⚠ ${esc(reason || '無可用時段')}</div></div>`;
       }
       const lines = items.map((w) => {
         const cross = Astro.fmtDate.format(w.end) !== Astro.fmtDate.format(w.start);
@@ -435,7 +435,8 @@ const App = (function () {
           <span class="ps-dur">${durText(w.start, w.end)}</span></div>`;
       }).join('');
       return `<div class="ps-rule"><span class="ps-name">${esc(rule.name)}</span>
-        <span class="ps-def">${esc(Plan.ruleText(rule))}</span>${lines}</div>`;
+        <span class="ps-def">${esc(Plan.ruleText(rule))}</span>${lines}
+        ${reason ? `<div class="ps-warn">${esc(reason)}</div>` : ''}</div>`;
     }).join('');
     $('plan-summary').innerHTML =
       `<div class="ps-title">${state.date.replace(/-/g, '/')}〈週${weekdayOf(state.date)}〉開工吉時：</div>${blocks}`;
@@ -461,7 +462,7 @@ const App = (function () {
       if (!items.length) {
         return `<div class="plan-rule"><div class="plan-head"><b>${esc(rule.name)}</b>
           <span class="plan-def">${esc(Plan.ruleText(rule))}</span></div>
-          <div class="plan-none">${esc(reason || '無可用時段')}</div></div>`;
+          <div class="plan-none err">⚠ ${esc(reason || '無可用時段')}</div></div>`;
       }
       const lines = items.map((w) => {
         const cross = Astro.fmtDate.format(w.end) !== Astro.fmtDate.format(w.start);
@@ -476,7 +477,8 @@ const App = (function () {
         </div>`;
       }).join('');
       return `<div class="plan-rule"><div class="plan-head"><b>${esc(rule.name)}</b>
-        <span class="plan-def">${esc(Plan.ruleText(rule))}</span></div>${lines}</div>`;
+        <span class="plan-def">${esc(Plan.ruleText(rule))}</span></div>${lines}
+        ${reason ? `<div class="plan-none err">⚠ ${esc(reason)}</div>` : ''}</div>`;
     }).join('');
 
     return `<div class="src">${state.date.replace(/-/g, '/')}〈週${weekdayOf(state.date)}〉${esc(place)} 的開工時間</div>

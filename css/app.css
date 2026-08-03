@@ -118,6 +118,8 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .ps-time { font-family: var(--font-mono); font-size: 15px; font-weight: 500; color: var(--md-primary); }
 .ps-dur { color: var(--muted); font-size: 12px; margin-left: 6px; font-family: var(--font-sans); }
 .ps-none { color: var(--muted); font-size: 12px; }
+.ps-none.err, .ps-warn { color: var(--danger); font-size: 12px; margin-top: 3px; }
+.plan-none.err { color: var(--danger); }
 
 /* ===== 搜尋建議 ===== */
 .search-wrap { position: relative; flex: 1 1 150px; min-width: 130px; }

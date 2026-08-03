@@ -79,9 +79,9 @@ const GMap = (function () {
     stationLayer = L.circleMarker([st.lat, st.lon], {
       radius: 7, color: '#fff', weight: 2,
       fillColor: '#d93025', fillOpacity: 1,
-    }).bindTooltip(`${st.name}（${st.town}）`, { direction: 'top', offset: [0, -6] })
+    }).bindTooltip(`氣象站：${st.name}`, { direction: 'top', offset: [0, -6] })
       .bindPopup(
-        `<b>${st.name}</b><br>${st.county}${st.town}`
+        `<b>氣象站：${st.name}</b><br>${st.county}${st.town}`
         + `<br>觀測時間 ${st.time.slice(0, 16).replace('T', ' ')}`
         + (st.alt !== null ? `<br>海拔 ${Math.round(st.alt)} m` : '')
         + `<br>距選取位置 ${st.dist.toFixed(1)} km`

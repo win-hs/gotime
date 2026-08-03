@@ -151,17 +151,39 @@ const Plan = (function () {
 
     const windows = [];
     if (rule.start.anchor === rule.end.anchor) {
+      // 同錨點：偏移大小決定先後，訖早於起一定是設定錯了（例如 日出−50 ～ 日出−60）
+      if (rule.end.offset <= rule.start.offset) {
+        return {
+          windows: [],
+          reason: `結束（${sideText(rule.end)}）不晚於開始（${sideText(rule.start)}），請調整偏移`,
+        };
+      }
       starts.forEach((s, i) => {
         windows.push({ start: shift(s, rule.start.offset), end: shift(ends[i], rule.end.offset) });
       });
     } else {
       for (const s of starts) {
-        const e = ends.find((x) => x >= s) || ends[ends.length - 1];
+        // 找起點之後最近的終點；當日沒有就取隔日（例如 日落 ～ 日出）
+        let e = ends.find((x) => x >= s);
+        if (!e) e = new Date(ends[ends.length - 1].getTime() + 86400000);
         windows.push({ start: shift(s, rule.start.offset), end: shift(e, rule.end.offset) });
       }
     }
-    windows.sort((a, b) => a.start - b.start);
-    return { windows, reason: null };
+
+    // 偏移可能讓時段變成負長度，一律擋下不硬算
+    const bad = windows.filter((w) => w.end <= w.start);
+    if (bad.length && bad.length === windows.length) {
+      return {
+        windows: [],
+        reason: `結束時間早於開始時間（${sideText(rule.start)} ～ ${sideText(rule.end)}），請調整偏移`,
+      };
+    }
+    const good = windows.filter((w) => w.end > w.start);
+    good.sort((a, b) => a.start - b.start);
+    return {
+      windows: good,
+      reason: bad.length ? '部分時段因偏移設定為負長度，已略過' : null,
+    };
   }
 
   /** 偏移顯示：正數帶 + 號 */
