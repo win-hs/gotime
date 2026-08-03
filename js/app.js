@@ -178,7 +178,7 @@ const App = (function () {
     const mOpts = Array.from({ length: 12 }, (_, i) => i + 1)
       .map((v) => `<option value="${v}"${v === m ? ' selected' : ''}>${v} 月</option>`).join('');
 
-    openOverlay('整月月相', `
+    openOverlay('月相表', `
       <div class="mon-bar">
         <button class="md-btn-out icon-only" id="mm-prev" title="上個月">◀</button>
         <select id="mm-year">${yOpts}</select>
@@ -258,7 +258,7 @@ const App = (function () {
         <td><span class="range r${d.range}">${d.range}</span></td>
         <td class="times">${cells}</td></tr>`;
     }).join('');
-    openOverlay(`整月潮汐　${tidePoint.name}`, `
+    openOverlay(`潮汐表　${tidePoint.name}`, `
       <div class="mon-bar">
         <span class="mon-note">氣象署潮汐預報涵蓋 ${first} ～ ${last}（共 ${tideDays.length} 天），以下為全部資料</span>
       </div>
@@ -428,13 +428,16 @@ const App = (function () {
       <div id="plan-result">${blocks}</div>`;
   }
 
+  /** 偏移欄以帶符號的文字呈現（正數顯示 +），數字輸入框無法顯示 + 號 */
+  const signed = (n) => (n > 0 ? '+' + n : String(n));
+
   function sideEditor(side, r) {
     const opts = Plan.ANCHORS.map((a) =>
       `<option value="${a.id}"${a.id === r.anchor ? ' selected' : ''}>${a.label}</option>`).join('');
     const timeInput = Plan.isFixed(r.anchor)
       ? `<input type="time" class="r-${side}t" value="${esc(r.time || '06:00')}">` : '';
     return `<select class="r-${side}a">${opts}</select>${timeInput}
-      <input type="number" class="r-${side}o" value="${r.offset}" step="5"><span>分</span>`;
+      <input type="text" inputmode="numeric" class="r-${side}o off-in" value="${signed(r.offset)}"><span>分</span>`;
   }
 
   function showRuleEditor() {
@@ -535,7 +538,9 @@ const App = (function () {
       const q = (c) => row.querySelector(c);
       const side = (a, t, o) => {
         const anchor = q(a).value;
-        const s = { anchor, offset: parseInt(q(o) ? q(o).value : '0', 10) || 0 };
+        // 允許使用者輸入 +30／30／-30
+        const raw = q(o) ? String(q(o).value).replace(/[＋]/g, '+').replace(/[−–—]/g, '-') : '0';
+        const s = { anchor, offset: parseInt(raw, 10) || 0 };
         if (Plan.isFixed(anchor)) s.time = (q(t) && q(t).value) || '06:00';
         return s;
       };
@@ -773,7 +778,7 @@ const App = (function () {
         showSuggest(local, local.length ? `找不到「${q}」，以下為相近地名` : '查無此地名，可改用點地圖或輸入座標');
         return;
       }
-      showSuggest(res, '選擇正確的地點（顯示所在鄉鎮以便分辨同名地點）');
+      showSuggest(res);
     } catch (_) {
       showSuggest(local, '地名搜尋服務連線失敗' + (local.length ? '，以下為本機相近地名' : ''));
     }
@@ -825,7 +830,7 @@ const App = (function () {
   function renderRangeSeg() {
     const html = Settings.RANGES.map((r) =>
       `<button class="seg-btn${Settings.days() === r.id ? ' on' : ''}" data-d="${r.id}">${r.label}</button>`).join('');
-    for (const id of ['range-seg', 'range-seg2']) {
+    for (const id of ['range-seg', 'range-seg2', 'range-seg3']) {
       const box = $(id);
       if (!box) continue;
       box.innerHTML = html;

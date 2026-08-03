@@ -20,10 +20,14 @@ const Plan = (function () {
     { id: 'moonrise',     label: '月出' },
     { id: 'moonset',      label: '月落' },
     { id: 'highTide',     label: '滿潮' },
+    { id: 'highTideAM',   label: '滿潮（上午）' },
+    { id: 'highTidePM',   label: '滿潮（下午）' },
     { id: 'lowTide',      label: '乾潮' },
+    { id: 'lowTideAM',    label: '乾潮（上午）' },
+    { id: 'lowTidePM',    label: '乾潮（下午）' },
   ];
   const anchorLabel = (id) => (ANCHORS.find((a) => a.id === id) || {}).label || id;
-  const isTide = (id) => id === 'highTide' || id === 'lowTide';
+  const isTide = (id) => /^(high|low)Tide/.test(id);
   const isFixed = (id) => id === 'fixed';
 
   const DEFAULTS = [
@@ -101,11 +105,16 @@ const Plan = (function () {
       case 'astroDusk': return one(t.night);
       case 'moonrise': return one(m.rise.d);
       case 'moonset': return one(m.set.d);
-      case 'highTide':
-      case 'lowTide': {
+      case 'highTide': case 'highTideAM': case 'highTidePM':
+      case 'lowTide': case 'lowTideAM': case 'lowTidePM': {
         if (!ctx.tideDay) return [];
-        const want = side.anchor === 'highTide' ? '滿潮' : '乾潮';
-        return ctx.tideDay.times.filter((x) => x.tide === want).map((x) => x.dt);
+        const want = side.anchor.startsWith('high') ? '滿潮' : '乾潮';
+        // 一天常有兩次滿／乾潮，AM／PM 變體可指定只取上午或下午那一次
+        const half = side.anchor.endsWith('AM') ? 'AM' : (side.anchor.endsWith('PM') ? 'PM' : null);
+        return ctx.tideDay.times
+          .filter((x) => x.tide === want)
+          .filter((x) => !half || (half === 'AM' ? +x.hhmm.slice(0, 2) < 12 : +x.hhmm.slice(0, 2) >= 12))
+          .map((x) => x.dt);
       }
       case 'fixed':
         return [new Date(`${ctx.date}T${side.time || '00:00'}:00+08:00`)];
@@ -125,10 +134,11 @@ const Plan = (function () {
 
     if (!starts.length || !ends.length) {
       const missing = !starts.length ? rule.start.anchor : rule.end.anchor;
-      return {
-        windows: [],
-        reason: isTide(missing) ? '此地點／日期無潮汐資料' : `當日無「${anchorLabel(missing)}」`,
-      };
+      let reason;
+      if (!isTide(missing)) reason = `當日無「${anchorLabel(missing)}」`;
+      else if (!ctx.tideDay) reason = '此地點／日期無潮汐資料';
+      else reason = `當日無「${anchorLabel(missing)}」`;   // 例如當天下午沒有乾潮
+      return { windows: [], reason };
     }
 
     // 兩端都是指定時刻＝直接設定幾點到幾點；訖早於起視為跨夜
