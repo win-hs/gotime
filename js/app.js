@@ -8,6 +8,8 @@ const App = (function () {
     'lnk-qpf': 'https://www.cwa.gov.tw/V8/C/P/QPF.html',
     'lnk-radar': 'https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html',
     'lnk-rain': 'https://watchapp.ncdr.nat.gov.tw/appv2',   // 落雨小幫手（NCDR）
+    'lnk-ty': 'https://www.cwa.gov.tw/V8/C/P/Typhoon/Typhoon.html',
+    'lnk-warn': 'https://www.cwa.gov.tw/V8/C/W/index.html',
   };
 
   const state = {
@@ -333,6 +335,125 @@ const App = (function () {
       toast(e.message || '雷達回波載入失敗', true);
       btn.textContent = '雷達回波開啟';
     } finally { btn.disabled = false; }
+  }
+
+  /* ---------- 警特報與颱風 ---------- */
+
+  let shownCyclone = null;
+
+  const fmtDT = (s) => String(s || '').replace('T', ' ').slice(0, 16);
+
+  async function renderAlerts(seq) {
+    const card = $('card-alert'), banner = $('alert-banner'), body = $('alert-body');
+    let warnings = [], hazards = [], relevant = [];
+    try {
+      const [w, h, cy] = await Promise.all([
+        Alerts.typhoonWarning().catch(() => []),
+        town ? Alerts.countyHazards(town.county).catch(() => []) : Promise.resolve([]),
+        Alerts.cyclones(state.lat, state.lon).catch(() => []),
+      ]);
+      if (seq !== reqSeq) return;
+      warnings = w; hazards = h;
+      relevant = cy.filter((c) => Alerts.isRelevant(c));
+    } catch (_) {
+      if (seq !== reqSeq) return;
+    }
+
+    // 沒有任何值得示警的事就整個收起來，平常畫面不受干擾
+    if (!warnings.length && !hazards.length && !relevant.length) {
+      card.hidden = true; banner.hidden = true;
+      GMap.clearTyphoon(); shownCyclone = null;
+      return;
+    }
+
+    // ---- 紅色橫幅 ----
+    const bits = [];
+    for (const w of warnings) bits.push(`<b>${esc(w.headline || w.event)}</b>`);
+    for (const h of hazards) bits.push(`${esc(town.county)}${esc(h.phenomena)}${esc(h.significance)}`);
+    for (const c of relevant) {
+      bits.push(c.hit
+        ? `<b>${esc(c.grade)}${esc(c.name)}</b> 暴風圈${c.hit.hour ? ` ${c.hit.hour} 小時後` : '目前'}可能影響此地`
+        : `<b>${esc(c.grade)}${esc(c.name)}</b> 預報最近 ${Math.round(c.nearest.dist)} km（${c.nearest.hour} 小時後）`);
+    }
+    $('alert-banner-text').innerHTML = bits.join('　｜　');
+    banner.hidden = false;
+
+    // ---- 卡片 ----
+    const parts = [];
+
+    if (warnings.length) {
+      parts.push(warnings.map((w) => `
+        <div class="al-block warn">
+          <div class="al-h">${esc(w.headline || w.event)}
+            <span class="al-time">${fmtDT(w.effective)} 發布</span></div>
+          ${w.sections.map((s) => `<div class="al-sec"><b>${esc(s.title)}</b>${esc(s.value)}</div>`).join('')}
+        </div>`).join(''));
+    }
+
+    if (hazards.length) {
+      parts.push(`<div class="al-block hazard">
+        <div class="al-h">${esc(town.county)} 生效中特報</div>
+        ${hazards.map((h) => `<div class="al-haz">
+          <span class="al-tag">${esc(h.phenomena)}${esc(h.significance)}</span>
+          <span class="al-time">${fmtDT(h.start)} ～ ${fmtDT(h.end)}</span></div>`).join('')}
+      </div>`);
+    }
+
+    for (const c of relevant) {
+      const n = c.now;
+      const rows = c.forecast.map((f) => `
+        <tr><td class="ty-h">${f.hour}h</td>
+          <td>${f.lat}N ${f.lon}E</td>
+          <td>${f.wind !== null ? f.wind + ' m/s' : '—'}</td>
+          <td>${f.pressure !== null ? f.pressure : '—'}</td>
+          <td>${f.r15 !== null ? f.r15 + ' km' : '—'}</td>
+          <td class="ty-r70">${f.r70 !== null ? '±' + f.r70 + ' km' : '—'}</td>
+          <td class="ty-d">${Math.round(Geo.distance(state.lat, state.lon, f.lat, f.lon))} km</td>
+        </tr>`).join('');
+
+      parts.push(`<div class="al-block typhoon">
+        <div class="al-h">${esc(c.grade)}　${esc(c.name)}
+          <span class="al-sub">${esc(c.intlName)}${c.no ? '・第 ' + esc(c.no) + ' 號' : ''}</span>
+          <button class="md-chip ty-focus" data-name="${esc(c.name)}">在地圖上顯示</button></div>
+        <div class="ty-now">
+          <span>中心 ${n.lat}N ${n.lon}E</span>
+          <span>氣壓 ${n.pressure !== null ? n.pressure + ' hPa' : '—'}</span>
+          <span>近中心最大風速 ${n.wind !== null ? n.wind + ' m/s' : '—'}</span>
+          <span>陣風 ${n.gust !== null ? n.gust + ' m/s' : '—'}</span>
+          <span>七級風半徑 ${n.r15 !== null ? n.r15 + ' km' : '—'}</span>
+          <span>十級風半徑 ${n.r25 !== null ? n.r25 + ' km' : '—'}</span>
+        </div>
+        ${n.movePred ? `<div class="ty-move">${esc(n.movePred)}</div>` : ''}
+        <div class="ty-impact${c.hit ? ' hit' : ''}">
+          ${c.hit
+            ? `⚠ 七級風暴風圈${c.hit.hour ? ` 約 ${c.hit.hour} 小時後` : '目前'}可能涵蓋此地點（中心距 ${Math.round(c.hit.dist)} km、半徑 ${c.hit.r15} km）`
+            : `目前距此地點 ${Math.round(c.nowDist)} km；預報最近 ${Math.round(c.nearest.dist)} km，發生在 ${c.nearest.hour} 小時後`}
+        </div>
+        <div class="ty-scroll"><table class="ty-tab">
+          <thead><tr><th>時距</th><th>中心位置</th><th>風速</th><th>氣壓 hPa</th>
+            <th>七級風半徑</th><th>70% 機率半徑</th><th>距此地</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+      </div>`);
+    }
+
+    parts.push(`<div class="al-note">
+      路徑與暴風圈為預報值，時間越遠誤差越大；「70% 機率半徑」表示中心有 70% 機率落在該範圍內，
+      中心線只是最可能位置。實際請以中央氣象署發布為準。</div>`);
+
+    body.innerHTML = parts.join('');
+    card.hidden = false;
+
+    // 地圖上畫最接近的那個颱風
+    const first = relevant[0] || null;
+    if (first) { GMap.setTyphoon(first); shownCyclone = first; }
+    else { GMap.clearTyphoon(); shownCyclone = null; }
+
+    body.querySelectorAll('.ty-focus').forEach((b) => b.addEventListener('click', () => {
+      const c = relevant.find((x) => x.name === b.dataset.name);
+      if (!c) return;
+      GMap.setTyphoon(c); shownCyclone = c; GMap.fitTyphoon(c);
+      document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
   }
 
   /* ---------- 即時觀測 ---------- */
@@ -878,6 +999,7 @@ const App = (function () {
     renderTide(seq).then(() => afterTide(seq));
     renderHourly(seq);
     renderObs(seq);
+    renderAlerts(seq);
     syncURL();
   }
 
@@ -972,6 +1094,9 @@ const App = (function () {
     $('moon-month-btn').addEventListener('click', () => showMoonMonth());
     $('tide-month-btn').addEventListener('click', () => showTideMonth());
     $('obs-refresh').addEventListener('click', () => { const s = ++reqSeq; renderObs(s); });
+    $('alert-banner-more').addEventListener('click', () => {
+      $('card-alert').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     for (const [id, url] of Object.entries(LINKS)) $(id).href = url;
 
     document.querySelectorAll('.card-ck').forEach((ck) => ck.addEventListener('change', () => {
