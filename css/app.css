@@ -27,7 +27,7 @@ body.locked { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden;
 .app-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   height: 64px; padding: 0 16px 0 24px; background: #fff;
-  border-bottom: 1px solid var(--md-outline); position: sticky; top: 0; z-index: 30;
+  border-bottom: 1px solid var(--md-outline); position: sticky; top: 0; z-index: 1100;
 }
 .app-bar-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .app-bar-logo { width: 32px; height: 32px; object-fit: contain; flex: none; color: var(--md-primary); }
@@ -127,7 +127,7 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .suggest {
   display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px);
   background: #fff; border: 1px solid var(--md-outline); border-radius: var(--radius);
-  box-shadow: var(--md-shadow-2); z-index: 800; max-height: 300px; overflow-y: auto;
+  box-shadow: var(--md-shadow-2); z-index: 1200; max-height: 300px; overflow-y: auto;
 }
 .suggest.show { display: block; }
 .sug-note { padding: 7px 12px; font-size: 12px; color: var(--muted); background: var(--md-surface-1); }
@@ -144,7 +144,7 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .fav-menu {
   display: none; position: absolute; right: 0; top: calc(100% + 4px); min-width: 210px;
   background: #fff; border: 1px solid var(--md-outline); border-radius: var(--radius);
-  box-shadow: var(--md-shadow-2); z-index: 810; max-height: 280px; overflow-y: auto; padding: 4px 0;
+  box-shadow: var(--md-shadow-2); z-index: 1200; max-height: 280px; overflow-y: auto; padding: 4px 0;
 }
 .fav-menu.show { display: block; }
 .fav-item { display: flex; align-items: center; gap: 6px; padding: 0 4px 0 12px; }
@@ -334,7 +334,7 @@ td.fc-span { background: #fcfcfd; }
 .share-menu {
   display: none; position: absolute; right: 0; bottom: calc(100% + 6px); min-width: 250px;
   background: #fff; border: 1px solid var(--md-outline); border-radius: var(--radius);
-  box-shadow: var(--md-shadow-2); z-index: 820; padding: 4px 0;
+  box-shadow: var(--md-shadow-2); z-index: 1200; padding: 4px 0;
 }
 .share-menu.show { display: block; }
 .share-menu { min-width: 190px; }
@@ -351,21 +351,26 @@ td.fc-span { background: #fcfcfd; }
   border-bottom: 1px solid var(--md-outline); }
 .ck.locked { color: var(--hint); cursor: default; }
 
-/* ===== 警特報紅色橫幅 ===== */
+/* ===== 警特報橫幅 =====
+   用淺紅底＋深紅字，長時間看不刺眼；左側粗紅邊維持警示感。
+   ⚠ z-index 必須高於 Leaflet 的 .leaflet-top/.leaflet-bottom（1000），
+     否則捲動時地圖控制項會蓋在橫幅上面。 */
 .alert-banner {
-  background: var(--md-error); color: #fff;
-  position: sticky; top: 64px; z-index: 25;
-  box-shadow: 0 1px 4px rgba(60,64,67,.3);
+  background: #fdecea; color: #b3261e;
+  border-bottom: 1px solid #f3c9c5;
+  border-left: 5px solid var(--md-error);
+  position: sticky; top: 64px; z-index: 1090;
+  box-shadow: 0 1px 3px rgba(60,64,67,.15);
 }
 .ab-inner { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
-.ab-ico { font-size: 18px; flex: none; }
+.ab-ico { font-size: 17px; flex: none; color: var(--md-error); }
 .ab-text { flex: 1; font-size: 14px; line-height: 1.5; min-width: 0; }
 .ab-text b { font-weight: 700; }
 .ab-more {
-  flex: none; border: 1px solid rgba(255,255,255,.6); background: transparent; color: #fff;
+  flex: none; border: 1px solid #e8a9a3; background: #fff; color: #b3261e;
   font-family: inherit; font-size: 13px; padding: 5px 12px; border-radius: 16px; cursor: pointer;
 }
-.ab-more:hover { background: rgba(255,255,255,.15); }
+.ab-more:hover { background: #fce8e6; }
 @media (max-width: 700px) {
   .alert-banner { top: 56px; }
   .ab-inner { padding: 9px 12px; gap: 8px; }

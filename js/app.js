@@ -8,8 +8,9 @@ const App = (function () {
     'lnk-qpf': 'https://www.cwa.gov.tw/V8/C/P/QPF.html',
     'lnk-radar': 'https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html',
     'lnk-rain': 'https://watchapp.ncdr.nat.gov.tw/appv2',   // 落雨小幫手（NCDR）
-    'lnk-ty': 'https://www.cwa.gov.tw/V8/C/P/Typhoon/Typhoon.html',
-    'lnk-warn': 'https://www.cwa.gov.tw/V8/C/W/index.html',
+    // 兩個網址皆實測 200：颱風消息、天氣警特報（後者取自 CAP 警報自帶的 web 欄位）
+    'lnk-ty': 'https://www.cwa.gov.tw/V8/C/P/Typhoon/TY_NEWS.html',
+    'lnk-warn': 'https://www.cwa.gov.tw/V8/C/P/Warning/FIFOWS.html',
   };
 
   const state = {
