@@ -97,7 +97,8 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
   position: relative; z-index: 0; isolation: isolate;
 }
 
-.loc-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+/* position: relative 供手機版把下拉錨定成整列寬度（見底部 media query） */
+.loc-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; position: relative; }
 .loc-label { font-size: 13px; color: var(--md-on-surface-var); }
 .loc-label b { color: var(--ink); font-weight: 500; }
 .loc-label .co { font-family: var(--font-mono); font-size: 12px; }
@@ -531,4 +532,9 @@ footer { margin-top: 20px; font-size: 12px; color: var(--muted); text-align: cen
   .md-btn svg { width: 22px; height: 22px; }
   .visit-chip { display: none; }
   .wrap { padding: 12px 12px 32px; }
+  /* 常用地點下拉原本以按鈕右緣對齊再往左展開 210px，
+     手機上按鈕靠左會讓清單超出畫面左邊界而看不到。
+     改為錨定整個搜尋列並貼齊左右，變成整列寬的面板。 */
+  .fav-wrap { position: static; }
+  .fav-menu { left: 0; right: 0; min-width: 0; }
 }
