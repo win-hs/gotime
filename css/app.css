@@ -87,7 +87,15 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
   display: flex; flex-direction: column; gap: 10px;
 }
 .panel-h { font-size: 12px; font-weight: 500; color: var(--muted); margin: 0; letter-spacing: .04em; }
-#map { height: 250px; border-radius: var(--radius); border: 1px solid var(--md-outline); }
+/* ⚠ Leaflet 內部有 z-index 到 1000 的容器（.leaflet-top/.leaflet-bottom），
+   而 .leaflet-container 本身不建立堆疊環境，那些層級會直接跑到根環境跟頁首比大小。
+   行動瀏覽器（尤其 iOS Safari）把地圖圖層提升為合成層後，這個比較未必如預期。
+   在這裡強制建立堆疊環境並壓到 z-index:0，Leaflet 的所有層級就被關在地圖內部，
+   不論頁首用多少 z-index 都不會被蓋。 */
+#map {
+  height: 250px; border-radius: var(--radius); border: 1px solid var(--md-outline);
+  position: relative; z-index: 0; isolation: isolate;
+}
 
 .loc-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .loc-label { font-size: 13px; color: var(--md-on-surface-var); }
