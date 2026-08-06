@@ -27,6 +27,23 @@ const Forecast = (function () {
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const val = (v, unit) => (v === null || v === undefined ? '—' : v + (unit || ''));
 
+  // 天氣現象常是「多雲午後短暫雷陣雨」這種長句，擠成一列會把欄位撐得很寬。
+  // 在這些詞之前斷行讀起來最自然（順序即優先序），都沒有才對半折。
+  const BREAK_BEFORE = ['短暫', '午後', '局部', '零星', '陣雨', '有霧'];
+
+  function wrapWeather(text) {
+    const t = String(text || '');
+    if (t.length <= 5) return esc(t);
+    for (const kw of BREAK_BEFORE) {
+      const i = t.indexOf(kw);
+      // 首行只有一個字也可以（例如「陰／短暫陣雨或雷雨」），
+      // 硬要湊字數反而會把「短暫陣雨」這種詞組拆開
+      if (i >= 1 && i < t.length - 1) return esc(t.slice(0, i)) + '<br>' + esc(t.slice(i));
+    }
+    const mid = Math.ceil(t.length / 2);
+    return esc(t.slice(0, mid)) + '<br>' + esc(t.slice(mid));
+  }
+
   /**
    * @param {Array} dates 顯示的日期
    * @param {Array} wdays CWA.weatherDays() 結果
@@ -62,7 +79,7 @@ const Forecast = (function () {
 
     rows.push(row('天氣狀況', (c) => c.p
       ? `<div class="fc-ico">${icon(c.p.weather, c.part === 'night')}</div>
-         <div class="fc-wx">${esc(c.p.weather || '—')}</div>`
+         <div class="fc-wx">${c.p.weather ? wrapWeather(c.p.weather) : '—'}</div>`
       : '—'));
 
     rows.push(row('最高溫', (c) => c.p ? val(c.p.tMax, '°C') : '—', 'fc-hi'));
@@ -80,7 +97,8 @@ const Forecast = (function () {
       rows.push(dayRow('日出／日落', (d) => {
         const s = Astro.sun(d, opt.lat, opt.lon);
         const g = (k) => (s.rows.find((r) => r.key === k) || {}).text || '—';
-        return `<span class="fc-sun">☀️ ${g('sunrise')}</span>　<span class="fc-set">🌆 ${g('sunset')}</span>`;
+        // 用區塊元素強制上下兩列，不讓它視欄寬決定要不要換行
+        return `<div class="fc-sun">☀️ ${g('sunrise')}</div><div class="fc-set">🌆 ${g('sunset')}</div>`;
       }));
     }
     if (opt.show.moon) {

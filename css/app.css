@@ -291,14 +291,17 @@ table.fc th.fc-part { background: #fff; font-size: 11px; font-weight: 400; color
 .fc-d { font-weight: 700; font-size: 13px; }
 .fc-w { font-size: 11px; opacity: .85; }
 .fc-ico { font-size: 19px; line-height: 1.2; }
-.fc-wx { font-size: 12px; white-space: nowrap; }
+/* 每一列本身不再自動換行（斷點由 wrapWeather() 插入的 <br> 決定） */
+.fc-wx { font-size: 12px; white-space: nowrap; line-height: 1.45; }
 td.fc-hi { color: var(--md-error); font-family: var(--font-mono); white-space: nowrap; }
 td.fc-lo { color: var(--md-primary); font-family: var(--font-mono); white-space: nowrap; }
 .fc-pop { color: var(--md-primary); font-family: var(--font-mono); }
 td.fc-sm, .fc-sm { font-size: 12px; color: var(--muted); white-space: nowrap; }
 td.fc-span { background: #fcfcfd; }
-.fc-sun { color: var(--sunrise); font-family: var(--font-mono); white-space: nowrap; }
-.fc-set { color: var(--sunset); font-family: var(--font-mono); white-space: nowrap; }
+/* 日出與日落固定各佔一列 */
+.fc-sun, .fc-set { display: block; font-family: var(--font-mono); white-space: nowrap; line-height: 1.5; }
+.fc-sun { color: var(--sunrise); }
+.fc-set { color: var(--sunset); }
 .fc-t { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; line-height: 1.5; }
 .fc-t.high { color: var(--tide-high); }
 .fc-t.low { color: var(--tide-low); }
