@@ -362,7 +362,12 @@ td.fc-span { background: #fcfcfd; }
   position: sticky; top: 64px; z-index: 1090;
   box-shadow: 0 1px 3px rgba(60,64,67,.15);
 }
-.ab-inner { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+/* 用 .alert-banner 前綴提高特異性：橫幅內層同時掛了 .wrap，
+   否則手機版 media query 裡的 .wrap padding 會蓋掉這裡，底部多出 32px 空白 */
+.alert-banner .ab-inner {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  max-width: 1180px; margin: 0 auto;
+}
 .ab-ico { font-size: 17px; flex: none; color: var(--md-error); }
 .ab-text { flex: 1; font-size: 14px; line-height: 1.5; min-width: 0; }
 .ab-text b { font-weight: 700; }
@@ -372,9 +377,11 @@ td.fc-span { background: #fcfcfd; }
 }
 .ab-more:hover { background: #fce8e6; }
 @media (max-width: 700px) {
-  .alert-banner { top: 56px; }
-  .ab-inner { padding: 9px 12px; gap: 8px; }
-  .ab-text { font-size: 13px; }
+  .alert-banner { top: 56px; border-left-width: 4px; }
+  .alert-banner .ab-inner { padding: 8px 12px; gap: 8px; }
+  .ab-text { font-size: 13px; line-height: 1.45; }
+  .ab-ico { font-size: 15px; }
+  .ab-more { padding: 4px 10px; font-size: 12px; }
 }
 
 /* ===== 警特報卡 ===== */
