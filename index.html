@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="lib/leaflet/leaflet.css?v=20260806d">
-<link rel="stylesheet" href="css/app.css?v=20260806d">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css?v=20260905a">
+<link rel="stylesheet" href="css/app.css?v=20260905a">
 </head>
 <body>
 
@@ -87,13 +87,24 @@
       </div>
 
       <div class="toggle-row">
-        <label class="ck"><input type="checkbox" class="card-ck" data-id="obs"> 即時觀測</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="weather"> 天氣</label>
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="rain"> 雨量</label>
+        <label class="ck"><input type="checkbox" class="card-ck" data-id="qpf"> 定量降水</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="moon"> 月相</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="sun"> 日出/落</label>
         <label class="ck"><input type="checkbox" class="card-ck" data-id="tide"> 潮汐</label>
-        <span class="grow"></span>
-        <button class="md-chip" id="radar-btn">雷達回波開啟</button>
+      </div>
+
+      <div class="toggle-row src-row">
+        <button type="button" class="sw" id="radar-btn" role="switch" aria-checked="false">
+          <span class="sw-track"><span class="sw-knob"></span></span>
+          <span class="sw-label" id="radar-label">雷達回波</span>
+        </button>
+        <span class="src-tag">中央氣象署</span>
+        <a class="md-chip" id="lnk-radar" target="_blank" rel="noopener">雷達回波</a>
+        <a class="md-chip" id="lnk-qpf" target="_blank" rel="noopener">定量降水預報</a>
+        <span class="src-tag">NCDR</span>
+        <a class="md-chip" id="lnk-rain" target="_blank" rel="noopener">落雨小幫手</a>
       </div>
 
       <div class="plan-summary" id="plan-summary"></div>
@@ -114,6 +125,9 @@
   </div>
 
   <!-- ===== 卡片 ===== -->
+  <!-- 順序可由標題列的把手拖曳調整，存 localStorage（js/cardorder.js） -->
+  <div class="card-stack" id="card-stack">
+
   <!-- 只在有警特報或颱風接近時才出現 -->
   <section class="card card-alert" id="card-alert" hidden>
     <h2><span class="h-title">⚠ 警特報與颱風</span>
@@ -125,53 +139,56 @@
     <div class="card-body" id="alert-body"></div>
   </section>
 
-  <section class="card" id="card-obs">
-    <h2><span class="h-title">🌡️ 即時觀測</span>
-      <span class="h-tools">
-        <span class="src-tag">中央氣象署</span>
-        <a class="md-chip" id="lnk-radar" target="_blank" rel="noopener">雷達回波</a>
-        <a class="md-chip" id="lnk-qpf" target="_blank" rel="noopener">定量降水預報</a>
-        <span class="src-tag">NCDR</span>
-        <a class="md-chip" id="lnk-rain" target="_blank" rel="noopener">落雨小幫手</a>
-        <button class="md-chip" id="obs-refresh">重新整理</button>
-      </span></h2>
-    <div class="card-body" id="obs-body"></div>
-  </section>
-
   <section class="card" id="card-multi">
     <h2><span class="h-title">📅 天氣預報</span>
       <span class="h-tools"><div class="seg" id="range-seg2"></div></span></h2>
     <div class="card-body" id="multi-body"></div>
   </section>
 
-  <section class="card" id="card-hourly">
-    <h2><span class="h-title">📈 溫度曲線</span>
-      <span class="h-tools"><div class="seg" id="range-seg3"></div></span></h2>
-    <div class="card-body" id="hourly-body"></div>
+  <section class="card" id="card-rain">
+    <h2><span class="h-title">🌧️ 雨量與降雨機率預測</span>
+      <span class="h-tools">
+        <span class="src-tag">中央氣象署</span>
+        <span class="src-tag">Open-Meteo</span>
+        <div class="seg" id="range-seg3"></div>
+      </span></h2>
+    <div class="card-body" id="rain-body"></div>
   </section>
 
-  <div class="cards">
-    <section class="card" id="card-sun">
-      <h2>☀️ 日出/落</h2>
-      <div class="card-body" id="sun-body"></div>
-    </section>
+  <!-- 氣象署官方 QPF 圖，直接引用原圖（純 <img> 不碰 canvas，故不需要 CORS） -->
+  <section class="card" id="card-qpf">
+    <h2><span class="h-title">🗺️ 定量降水預報</span>
+      <span class="h-tools">
+        <span class="src-tag">中央氣象署</span>
+        <button class="md-chip" id="qpf-refresh">重新整理</button>
+      </span></h2>
+    <div class="card-body" id="qpf-body"></div>
+  </section>
 
-    <section class="card" id="card-moon">
-      <h2><span class="h-title">🌗 月相</span>
-        <span class="h-tools"><button class="md-chip" id="moon-month-btn">月相表</button></span></h2>
-      <div class="card-body" id="moon-body"></div>
-    </section>
-  </div>
+  <!-- 這三張同寬並排；任一張取消勾選後，其餘會自動平分整排（見 .card-stack 的 flex 設定） -->
+  <section class="card w-third" id="card-sun">
+    <h2><span class="h-title">☀️ 日出/落</span></h2>
+    <div class="card-body" id="sun-body"></div>
+  </section>
 
-  <section class="card" id="card-tide">
+  <section class="card w-third" id="card-moon">
+    <h2><span class="h-title">🌗 月相</span>
+      <span class="h-tools"><button class="md-chip" id="moon-month-btn">月相表</button></span></h2>
+    <div class="card-body" id="moon-body"></div>
+  </section>
+
+  <section class="card w-third" id="card-tide">
     <h2><span class="h-title">🌊 潮汐</span>
       <span class="h-tools"><button class="md-chip" id="tide-month-btn">潮汐表</button></span></h2>
     <div class="card-body" id="tide-body"></div>
   </section>
 
+  </div>
+
   <footer>
     日月時刻為本機天文計算，時區固定臺灣時間（+08:00）；
-    天氣、潮汐、雨量與雷達回波來自中央氣象署開放資料。
+    天氣、潮汐、雨量與雷達回波來自中央氣象署開放資料；
+    逐時雨量預報來自 <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）。
   </footer>
 </div>
 
@@ -187,22 +204,23 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="lib/leaflet/leaflet.js?v=20260806d"></script>
-<script src="lib/suncalc.js?v=20260806d"></script>
-<script src="js/config.js?v=20260806d"></script>
-<script src="js/settings.js?v=20260806d"></script>
-<script src="js/moonpos.js?v=20260806d"></script>
-<script src="js/astro.js?v=20260806d"></script>
-<script src="js/geo.js?v=20260806d"></script>
-<script src="js/cwa.js?v=20260806d"></script>
-<script src="js/radar.js?v=20260806d"></script>
-<script src="js/observe.js?v=20260806d"></script>
-<script src="js/alert.js?v=20260806d"></script>
-<script src="js/forecast.js?v=20260806d"></script>
-<script src="js/hourly.js?v=20260806d"></script>
-<script src="js/plan.js?v=20260806d"></script>
-<script src="js/share.js?v=20260806d"></script>
-<script src="js/map.js?v=20260806d"></script>
-<script src="js/app.js?v=20260806d"></script>
+<script src="lib/leaflet/leaflet.js?v=20260905a"></script>
+<script src="lib/suncalc.js?v=20260905a"></script>
+<script src="js/config.js?v=20260905a"></script>
+<script src="js/settings.js?v=20260905a"></script>
+<script src="js/moonpos.js?v=20260905a"></script>
+<script src="js/astro.js?v=20260905a"></script>
+<script src="js/geo.js?v=20260905a"></script>
+<script src="js/cwa.js?v=20260905a"></script>
+<script src="js/openmeteo.js?v=20260905a"></script>
+<script src="js/radar.js?v=20260905a"></script>
+<script src="js/alert.js?v=20260905a"></script>
+<script src="js/forecast.js?v=20260905a"></script>
+<script src="js/rainchart.js?v=20260905a"></script>
+<script src="js/cardorder.js?v=20260905a"></script>
+<script src="js/plan.js?v=20260905a"></script>
+<script src="js/share.js?v=20260905a"></script>
+<script src="js/map.js?v=20260905a"></script>
+<script src="js/app.js?v=20260905a"></script>
 </body>
 </html>

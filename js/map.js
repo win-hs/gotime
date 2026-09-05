@@ -2,7 +2,7 @@
 
 const GMap = (function () {
   let map = null, marker = null, onPick = null,
-    radarLayer = null, stationLayer = null, typhoonLayer = null;
+    radarLayer = null, typhoonLayer = null;
 
   // Material red 圖釘（取代 Leaflet 預設藍色）
   const PIN = L.divIcon({
@@ -71,27 +71,6 @@ const GMap = (function () {
 
   function clearRadar() {
     if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; }
-  }
-
-  /** 最近的自動氣象站：紅點＋站名／鄉鎮／觀測時間 */
-  function setStation(st) {
-    clearStation();
-    if (!st) return;
-    stationLayer = L.circleMarker([st.lat, st.lon], {
-      radius: 7, color: '#fff', weight: 2,
-      fillColor: '#d93025', fillOpacity: 1,
-    }).bindTooltip(`氣象站：${st.name}`, { direction: 'top', offset: [0, -6] })
-      .bindPopup(
-        `<b>氣象站：${st.name}</b><br>${st.county}${st.town}`
-        + `<br>觀測時間 ${st.time.slice(0, 16).replace('T', ' ')}`
-        + (st.alt !== null ? `<br>海拔 ${Math.round(st.alt)} m` : '')
-        + `<br>距選取位置 ${st.dist.toFixed(1)} km`
-      );
-    stationLayer.addTo(map);
-  }
-
-  function clearStation() {
-    if (stationLayer) { map.removeLayer(stationLayer); stationLayer = null; }
   }
 
   /* ---------------- 颱風路徑 ---------------- */
@@ -220,7 +199,7 @@ const GMap = (function () {
   }
 
   return {
-    init, setMarker, setRadar, clearRadar, setStation, clearStation,
+    init, setMarker, setRadar, clearRadar,
     setTyphoon, clearTyphoon, fitTyphoon,
     get instance() { return map; },
   };

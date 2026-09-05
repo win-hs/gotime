@@ -270,24 +270,37 @@ const App = (function () {
         <tbody>${rows}</tbody></table>`);
   }
 
-  /* ---------- 今天天氣（溫度曲線） ---------- */
+  /* ---------- 雨量與降雨機率 ---------- */
 
-  async function renderHourly(seq) {
-    const body = $('hourly-body');
+  async function renderRain(seq) {
+    if (!Settings.on('rain')) return;
+    const body = $('rain-body');
     body.innerHTML = loadingHTML;
-    try {
-      const sr = await CWA.series(town, state.date, Settings.days());
-      if (seq !== reqSeq) return;
-      body.innerHTML = `
-        <div class="src">預報鄉鎮：<b>${esc(town.county)}${esc(town.name)}</b>
-          <span class="dist">距 ${town.dist.toFixed(1)} km</span>
-          <span class="kind">${sr.hourly ? '逐 3 小時' : '逐日高低溫'}</span></div>`
-        + Hourly.render(sr);
-    } catch (e) {
-      if (seq !== reqSeq) return;
-      body.innerHTML = errorHTML(e.message, 'hourly-retry');
-      $('hourly-retry').addEventListener('click', () => { const s = ++reqSeq; renderHourly(s); });
+    const days = Settings.days();
+
+    // 兩家分開等：Open-Meteo 掛掉只掉雨量層，氣象署機率仍照畫，反之亦然
+    const [om, pop] = await Promise.all([
+      OpenMeteo.hourly(state.lat, state.lon, state.date, Astro.shiftDate(state.date, days - 1))
+        .catch((e) => ({ err: e.message })),
+      CWA.popSeries(town, state.date, days).catch((e) => ({ err: e.message })),
+    ]);
+    if (seq !== reqSeq) return;
+
+    const rainData = om.err ? null : om;
+    const popPts = pop.err ? [] : pop;
+
+    if (!rainData && !popPts.length) {
+      body.innerHTML = errorHTML(om.err || pop.err || '雨量資料取得失敗', 'rain-retry');
+      $('rain-retry').addEventListener('click', () => { const s = ++reqSeq; renderRain(s); });
+      return;
     }
+
+    body.innerHTML = `
+      <div class="src">雨量座標：<b>${state.lat.toFixed(4)}, ${state.lon.toFixed(4)}</b>
+        <span class="kind">機率預報鄉鎮：${esc(town.county)}${esc(town.name)}</span></div>`
+      + RainChart.render(rainData, popPts, state.date, days)
+      + (rainData ? '' : `<p class="rc-note warn">雨量層載入失敗（${esc(om.err)}），目前僅顯示氣象署降雨機率。</p>`)
+      + (popPts.length ? '' : `<p class="rc-note warn">降雨機率載入失敗（${esc(pop.err || '此日期超出預報範圍')}），目前僅顯示雨量。</p>`);
   }
 
   /* ---------- 天氣預報表 ---------- */
@@ -316,26 +329,66 @@ const App = (function () {
 
   /* ---------- 雷達回波 ---------- */
 
+  /** 開關的外觀與 aria 狀態一起更新，避免只改了顏色卻沒改語意 */
+  function setRadarUI(on, label) {
+    const btn = $('radar-btn');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    $('radar-label').textContent = label;
+  }
+
   async function toggleRadar() {
     const btn = $('radar-btn');
     if (Settings.radar()) {
       Settings.setRadar(false);
       GMap.clearRadar(); Radar.dispose(); radarInfo = null;
-      btn.classList.remove('on'); btn.textContent = '雷達回波開啟';
+      setRadarUI(false, '雷達回波');
       return;
     }
-    btn.disabled = true; btn.textContent = '載入回波圖…';
+    btn.disabled = true;
+    setRadarUI(false, '雷達回波（載入中…）');
     try {
       const m = await Radar.meta();
       radarInfo = await Radar.buildOverlay(m);
       GMap.setRadar(radarInfo.url, radarInfo.bounds, RADAR_OPACITY);
       Settings.setRadar(true);
-      btn.classList.add('on'); btn.textContent = `雷達回波 ${radarInfo.time.slice(11, 16)}`;
+      setRadarUI(true, `雷達回波 ${radarInfo.time.slice(11, 16)}`);
       toast('回波圖 ' + radarInfo.time.slice(11, 16) + ' 已疊上地圖（透明度 50%）');
     } catch (e) {
       toast(e.message || '雷達回波載入失敗', true);
-      btn.textContent = '雷達回波開啟';
+      setRadarUI(false, '雷達回波');
     } finally { btn.disabled = false; }
+  }
+
+  /* ---------- 定量降水預報（氣象署 QPF 圖） ---------- */
+
+  // 氣象署官方 QPF 圖，逐 12 小時涵蓋未來 48 小時。
+  // 直接引用原圖不做影像處理 —— 純 <img> 不碰 canvas，所以不需要 CORS
+  // （雷達回波要重投影與去背才必須走 fetch→blob，兩者情況不同）。
+  const QPF_BASE = 'https://www.cwa.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_';
+  const QPF_PANELS = [
+    { h: 12, label: '0～12 小時' }, { h: 24, label: '12～24 小時' },
+    { h: 36, label: '24～36 小時' }, { h: 48, label: '36～48 小時' },
+  ];
+
+  function renderQpf(force) {
+    if (!Settings.on('qpf')) return;
+    const body = $('qpf-body');
+    // 全臺共用的圖，與所選日期／地點無關；每張約 400 KB，不該隨每次重繪重新下載
+    if (!force && body.dataset.loaded) return;
+    body.dataset.loaded = '1';
+    const bust = Date.now();     // 氣象署一天更新數次，不加參數會拿到快取的舊圖
+    body.innerHTML = `
+      <div class="qpf-grid">${QPF_PANELS.map((p) => `
+        <figure class="qpf-item">
+          <img src="${QPF_BASE}${p.h}.png?t=${bust}" alt="定量降水預報 ${p.label}" loading="lazy">
+          <figcaption>${p.label}</figcaption>
+        </figure>`).join('')}</div>
+      <p class="rc-note">中央氣象署定量降水預報原圖，圖上已標示發布時間與有效時間，單位毫米。點圖可放大。</p>`;
+    body.querySelectorAll('.qpf-item img').forEach((img, i) => {
+      img.addEventListener('click', () => openOverlay(
+        '定量降水預報　' + QPF_PANELS[i].label, `<img class="qpf-full" src="${img.src}" alt="">`));
+    });
   }
 
   /* ---------- 警特報與颱風 ---------- */
@@ -455,61 +508,6 @@ const App = (function () {
       GMap.setTyphoon(c); shownCyclone = c; GMap.fitTyphoon(c);
       document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }));
-  }
-
-  /* ---------- 即時觀測 ---------- */
-
-  async function renderObs(seq) {
-    if (!Settings.on('obs')) return;
-    const body = $('obs-body');
-    body.innerHTML = loadingHTML;
-    try {
-      const st = await Observe.nearest(state.lat, state.lon, 3);
-      if (seq !== reqSeq) return;
-      if (!st.length) {
-        GMap.clearStation();
-        body.innerHTML = '<div class="state">查無鄰近測站</div>'; return;
-      }
-
-      const v = (x, u) => (x === null ? '—' : x + (u || ''));
-      const main = st[0];
-      GMap.setStation(main);   // 地圖上以紅點標出最近測站
-      const item = (lbl, val) => `<div class="ob-item"><span class="ob-l">${lbl}</span><span class="ob-v">${val}</span></div>`;
-      const others = st.slice(1).map((s) => `
-        <div class="ob-row">
-          <div class="ob-name">${esc(s.name)}<small>${esc(s.town)}・${s.dist.toFixed(1)} km${s.alt !== null ? '・' + Math.round(s.alt) + ' m' : ''}</small></div>
-          <div class="ob-mini">
-            <span>${esc(s.weather || '—')}</span>
-            <span class="ob-t">${v(s.temp, '°')}</span>
-            <span>濕 ${v(s.humid, '%')}</span>
-            <span>雨 ${v(s.rain, ' mm')}</span>
-            <span>${s.dir || '—'} ${v(s.beaufort, ' 級')}</span>
-          </div></div>`).join('');
-
-      body.innerHTML = `
-        <div class="src">最近測站：<b>${esc(main.name)}</b>
-          <span class="kind">${esc(main.county)}${esc(main.town)}</span>
-          <span class="dist">距 ${main.dist.toFixed(1)} km</span>
-          ${main.alt !== null ? `<span class="dist">海拔 ${Math.round(main.alt)} m</span>` : ''}
-          <span class="dist">觀測 ${main.time.slice(11, 16)}</span></div>
-        <div class="ob-main">
-          <div class="ob-temp">${v(main.temp, '')}<span class="ob-unit">°C</span>
-            <div class="ob-wx">${Forecast.icon(main.weather, false)} ${esc(main.weather || '—')}</div></div>
-          <div class="ob-grid">
-            ${item('相對濕度', v(main.humid, ' %'))}
-            ${item('本時段雨量', v(main.rain, ' mm'))}
-            ${item('風', `${main.dir || '—'} ${v(main.wind, ' m/s')}${main.beaufort !== null ? `（${main.beaufort} 級）` : ''}`)}
-            ${item('最大陣風', v(main.gust, ' m/s'))}
-            ${item('今日最高', v(main.tHigh, ' °C'))}
-            ${item('今日最低', v(main.tLow, ' °C'))}
-          </div>
-        </div>
-        ${others ? `<div class="ob-others"><div class="ob-others-h">其他鄰近測站</div>${others}</div>` : ''}`;
-    } catch (e) {
-      if (seq !== reqSeq) return;
-      body.innerHTML = errorHTML(e.message, 'obs-retry');
-      $('obs-retry').addEventListener('click', () => { const s = ++reqSeq; renderObs(s); });
-    }
   }
 
   /* ---------- 調查規劃 ---------- */
@@ -973,7 +971,6 @@ const App = (function () {
       const el = $('card-' + c.id);
       if (el) el.hidden = !Settings.on(c.id);
     }
-    if (!Settings.on('obs')) GMap.clearStation();
     document.querySelectorAll('.card-ck').forEach((ck) => {
       const locked = (Settings.CARDS.find((c) => c.id === ck.dataset.id) || {}).locked;
       ck.checked = Settings.on(ck.dataset.id);
@@ -998,8 +995,8 @@ const App = (function () {
     renderPlanSummary();
     const seq = ++reqSeq;
     renderTide(seq).then(() => afterTide(seq));
-    renderHourly(seq);
-    renderObs(seq);
+    renderRain(seq);
+    renderQpf();
     renderAlerts(seq);
     syncURL();
   }
@@ -1022,7 +1019,7 @@ const App = (function () {
       box.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
         Settings.setDays(+b.dataset.d);
         renderRangeSeg();
-        const s = ++reqSeq; renderForecast(s); renderHourly(s);
+        const s = ++reqSeq; renderForecast(s); renderRain(s);
       }));
     }
   }
@@ -1094,7 +1091,6 @@ const App = (function () {
 
     $('moon-month-btn').addEventListener('click', () => showMoonMonth());
     $('tide-month-btn').addEventListener('click', () => showTideMonth());
-    $('obs-refresh').addEventListener('click', () => { const s = ++reqSeq; renderObs(s); });
     $('alert-banner-more').addEventListener('click', () => {
       $('card-alert').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -1108,6 +1104,7 @@ const App = (function () {
     }));
 
     $('radar-btn').addEventListener('click', toggleRadar);
+    $('qpf-refresh').addEventListener('click', () => renderQpf(true));
     $('rules-btn').addEventListener('click', showRuleEditor);
 
     $('overlay-close').addEventListener('click', closeOverlay);
@@ -1123,6 +1120,7 @@ const App = (function () {
     GMap.init(state.lat, state.lon, (lat, lon) => setLocation(lat, lon, false));
     bind();
     renderFavs();
+    CardOrder.init($('card-stack'));
     applyCardVisibility();
     renderRangeSeg();
     if (Settings.on('sun')) renderSun();
@@ -1131,7 +1129,7 @@ const App = (function () {
     try {
       await Geo.load();
     } catch (_) {
-      for (const id of ['tide-body', 'hourly-body', 'multi-body', 'obs-body']) {
+      for (const id of ['tide-body', 'rain-body', 'multi-body']) {
         const el = $(id);
         if (el) el.innerHTML = '<div class="state err">地點對照檔載入失敗</div>';
       }

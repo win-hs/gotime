@@ -155,17 +155,21 @@ const CWA = (function () {
   }
 
   /**
-   * 逐時序列，供溫度曲線用。
-   * 3 天 → 逐 3 小時（有實際溫度與體感溫度）；1 週 → 逐 12 小時（只有高低溫）。
+   * 降雨機率序列（每筆 3 小時），供雨量圖用。
+   *
+   * ⚠ 氣象署的降雨機率只發布到**約第 4 天**，之後時段的值是 "-"（不是缺欄位）。
+   *   別想用 1 週資料集的 12 小時降雨機率補後段 —— 實測（2026-09-05，池上／頭城／埔里一致）
+   *   12 小時那組的有效值**比 3 小時那組更短**：3 小時到 09/09 15:00、12 小時只到 09/08 18:00。
+   *   所以選 1 週時機率線本來就會在第 4 天結束，圖上要標明，而不是想辦法補滿。
+   *
+   * @returns {Promise<Array<{start, end, hours, pop}>>}
    */
-  async function series(town, startDate, days) {
-    const useHourly = days <= 3;
-    const all = await fetchWeather(useHourly ? town.ds3 : town.ds7, town.name,
-      useHourly ? EL3 : EL7);
+  async function popSeries(town, startDate, days) {
     const endDate = Astro.shiftDate(startDate, days);
-    const pts = all.filter((p) => p.date >= startDate && p.date < endDate);
-    return { points: pts, hourly: useHourly };
+    return (await fetchWeather(town.ds3, town.name, ['3小時降雨機率']))
+      .filter((p) => p.date >= startDate && p.date < endDate && p.pop !== null)
+      .map((p) => ({ start: p.start, end: p.end, hours: 3, pop: p.pop }));
   }
 
-  return { tide, weather, weatherDays, groupByDay, series };
+  return { tide, weather, weatherDays, groupByDay, popSeries };
 })();

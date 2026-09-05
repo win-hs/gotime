@@ -164,13 +164,24 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 .fav-empty { padding: 12px; font-size: 13px; color: var(--muted); }
 
 /* ===== 卡片 ===== */
-.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-@media (max-width: 900px) { .cards { grid-template-columns: 1fr; } }
+/* 卡片以 flex-wrap 排列：整排寬的佔滿一列，w-third 的並排。
+   隱藏的卡片會退出 flex 版面，同排剩下的自動平分，不需要額外的欄數計算。 */
+/* align-items: stretch —— 同一列的卡片等高（日出/落、月相、潮汐三張長度一致） */
+.card-stack { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-bottom: 12px; }
 .card {
   background: #fff; border: 1px solid var(--md-outline); border-radius: var(--radius);
-  box-shadow: var(--md-shadow-1); overflow: hidden; margin-bottom: 12px;
+  box-shadow: var(--md-shadow-1); overflow: hidden; flex: 1 1 100%; min-width: 0;
 }
-.cards .card { margin-bottom: 0; }
+.card.w-third { flex: 1 1 260px; }
+@media (max-width: 700px) { .card.w-third { flex: 1 1 100%; } }
+.card.dragging { opacity: .55; outline: 2px dashed var(--md-primary); outline-offset: -2px; }
+.drag-h {
+  flex: none; border: none; background: transparent; color: var(--hint);
+  font-size: 15px; line-height: 1; padding: 4px 4px 4px 0; margin-right: -2px;
+  cursor: grab; touch-action: none;
+}
+.drag-h:hover { color: var(--md-on-surface-var); }
+.drag-h:active { cursor: grabbing; }
 .card > h2 {
   font-size: 14px; font-weight: 500; margin: 0; padding: 10px 16px;
   border-bottom: 1px solid var(--md-outline);
@@ -313,31 +324,68 @@ td.fc-span { background: #fcfcfd; }
 .fc-moon .moon-svg { flex: none; }
 .mx-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
 
-/* ===== 今天天氣：溫度曲線 ===== */
+/* ===== 圖表共用：圖例、座標軸、夜間底色（目前由雨量圖使用） ===== */
 .hb-legend { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--muted); padding-bottom: 6px; }
 .lg { display: inline-flex; align-items: center; gap: 5px; }
 .lg::before { content: ''; width: 14px; height: 3px; border-radius: 2px; }
-.lg-up::before { background: var(--md-warn); }
-.lg-lo::before { background: var(--md-on-surface-var); }
-.hb-unit { margin-left: auto; }
 .hb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .hb-svg { display: block; }
 .hb-night { fill: #f1f3f4; }
 .hb-grid { stroke: #edeff1; stroke-width: 1; }
 .hb-day { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 3 3; }
-.hb-axis { fill: var(--hint); font-size: 10px; text-anchor: end; font-family: var(--font-mono); }
-.hb-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.hb-line.up { stroke: var(--md-warn); }
-.hb-line.lo { stroke: var(--md-on-surface-var); }
-.hb-dot { stroke: #fff; stroke-width: 1.5; }
-.hb-dot.up { fill: var(--md-warn); }
-.hb-dot.lo { fill: var(--md-on-surface-var); }
-.hb-val { font-size: 11px; text-anchor: middle; font-family: var(--font-mono); }
-.hb-val.up { fill: var(--md-warn); }
-.hb-val.lo { fill: var(--md-on-surface-var); }
-.hb-ico { font-size: 15px; text-anchor: middle; }
-.hb-hr { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font-mono); }
+/* 刻度改用 sans 且放大到 12px：Roboto Mono 在 10px 下 0 與 8 幾乎分不出來，
+   右軸的 100% 會被誤讀成 188。sans 的字碗開口明顯，不會有這個問題。 */
+.hb-axis { fill: var(--muted); font-size: 12px; text-anchor: end; font-family: var(--font-sans); }
+.hb-hr { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font-sans); }
 .hb-date { font-size: 11px; fill: var(--md-primary); text-anchor: middle; font-weight: 500; }
+
+/* ===== 雨量圖（沿用上方 hb-* 的座標軸與夜間底色） ===== */
+.rc-axis-r { fill: var(--muted); font-size: 12px; text-anchor: start; font-family: var(--font-sans); }
+.rc-axis-t { font-size: 12px; fill: var(--md-on-surface-var); text-anchor: middle; font-weight: 500; }
+/* 左右軸固定不動，只有中間圖面捲動，否則 1 週模式的右軸會被推出畫面 */
+.rc-row { display: flex; align-items: flex-start; }
+.rc-row .hb-scroll { flex: 1 1 auto; min-width: 0; }
+.rc-axis-svg { display: block; flex: none; }
+.rc-bar { fill: #aecbfa; }
+.rc-area { fill: rgba(26, 115, 232, .12); stroke: none; }
+.rc-line { fill: none; stroke: var(--md-primary); stroke-width: 2; stroke-linejoin: round; }
+.rc-pop { fill: none; stroke: var(--md-warn); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.rc-lg-rain::before { background: #aecbfa; }
+.rc-lg-pop::before { background: var(--md-warn); }
+.rc-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.rc-note.warn { color: var(--warn); }
+
+/* ===== 定量降水預報（氣象署 QPF 原圖） ===== */
+.qpf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 900px) { .qpf-grid { grid-template-columns: repeat(2, 1fr); } }
+.qpf-item { margin: 0; }
+.qpf-item img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+  border: 1px solid var(--md-outline); border-radius: 6px; background: #fff;
+}
+.qpf-item figcaption { margin-top: 4px; font-size: 12px; color: var(--muted); text-align: center; }
+.qpf-full { display: block; width: 100%; height: auto; }
+
+/* ===== 開關（雷達回波） ===== */
+.sw {
+  display: inline-flex; align-items: center; gap: 8px; border: none; background: transparent;
+  padding: 4px 4px 4px 0; font-family: inherit; font-size: 13px; color: var(--md-on-surface-var);
+  cursor: pointer;
+}
+.sw-track {
+  position: relative; flex: none; width: 34px; height: 14px; border-radius: 7px;
+  background: #bdc1c6; transition: background-color .15s ease;
+}
+.sw-knob {
+  position: absolute; top: -3px; left: -1px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: var(--md-shadow-1); transition: transform .15s ease, background-color .15s ease;
+}
+.sw.on .sw-track { background: var(--md-primary-container); }
+.sw.on .sw-knob { transform: translateX(16px); background: var(--md-primary); }
+.sw.on .sw-label { color: var(--md-primary); font-weight: 500; }
+.sw:disabled { opacity: .6; cursor: default; }
+.src-row { padding-top: 2px; }
+
 .cwa-links { justify-content: flex-start; flex-wrap: wrap; }
 .cwa-links a { text-decoration: none; }
 
@@ -430,26 +478,6 @@ table.ty-tab td { font-family: var(--font-mono); font-variant-numeric: tabular-n
 .ty-r70 { color: var(--md-warn); }
 .ty-d { color: var(--md-primary); }
 
-/* ===== 即時觀測 ===== */
-.ob-main { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-.ob-temp { flex: none; font-size: 42px; font-weight: 500; line-height: 1.1;
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.ob-unit { font-size: 18px; color: var(--muted); margin-left: 2px; }
-.ob-wx { font-size: 14px; font-weight: 400; color: var(--md-on-surface-var); font-family: var(--font-sans); margin-top: 2px; }
-.ob-grid { flex: 1 1 320px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
-@media (max-width: 520px) { .ob-grid { grid-template-columns: 1fr; } }
-.ob-item { display: flex; justify-content: space-between; align-items: baseline;
-  padding: 4px 0; border-bottom: 1px solid #f1f3f4; }
-.ob-l { font-size: 12px; color: var(--muted); }
-.ob-v { font-size: 14px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.ob-others { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--md-outline); }
-.ob-others-h { font-size: 11px; color: var(--hint); margin-bottom: 4px; }
-.ob-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f1f3f4; }
-.ob-row:last-child { border-bottom: none; }
-.ob-name { flex: 1 1 140px; font-size: 13px; min-width: 0; }
-.ob-name small { display: block; font-size: 11px; color: var(--muted); }
-.ob-mini { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
-.ob-mini .ob-t { color: var(--ink); font-weight: 500; font-family: var(--font-mono); }
 .sign-in { width: 54px; text-align: center; }
 
 /* ===== 就地命名浮層（取代 window.prompt） ===== */

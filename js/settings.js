@@ -4,10 +4,11 @@ const Settings = (function () {
   const KEY = 'gotime.display';
 
   // 面板上的勾選框；同時決定天氣預報表要出現哪些列
-  // obs 與 weather 為主資料，不可取消
+  // weather 為主資料，不可取消
   const CARDS = [
-    { id: 'obs', label: '即時觀測', locked: true },
     { id: 'weather', label: '天氣', locked: true },
+    { id: 'rain', label: '雨量' },
+    { id: 'qpf', label: '定量降水預報' },
     { id: 'moon', label: '月相' },
     { id: 'sun', label: '日出/落' },
     { id: 'tide', label: '潮汐' },
@@ -24,7 +25,7 @@ const Settings = (function () {
   const RANGES = [{ id: 3, label: '3 天' }, { id: 7, label: '1 週' }];
 
   const DEFAULTS = {
-    cards: { obs: true, weather: true, moon: true, sun: true, tide: true },
+    cards: { weather: true, rain: true, qpf: true, moon: true, sun: true, tide: true },
     tw: { twAstro: true, twNautical: true, twCivil: true },
     days: 7,
     radar: false,   // 需下載約 700 KB 回波圖，預設不開
