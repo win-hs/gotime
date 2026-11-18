@@ -11,7 +11,11 @@
 
 const OpenMeteo = (function () {
   const BASE = 'https://api.open-meteo.com/v1/forecast';
-  const TIMEOUT = 15000;
+  // Open-Meteo 的失敗型態是「間歇性卡死」：健康時約 0.3 秒回應，卡住時連 40 秒都不回
+  // （實測連續 3 次卡死後第 4 次 1 秒內成功）。與其單次等 15 秒，
+  // 不如單次短等並重試——每次重試都是全新連線，成功率遠高於乾等同一條。
+  const TIMEOUT = 6000;
+  const ATTEMPTS = 3;
   const cache = new Map();
 
   /**
@@ -31,28 +35,36 @@ const OpenMeteo = (function () {
       start_date: startDate,
       end_date: endDate,
     });
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT);
-    try {
-      const r = await fetch(BASE + '?' + q, { signal: ctl.signal });
-      if (!r.ok) throw new Error('Open-Meteo 伺服器錯誤 ' + r.status);
-      const j = await r.json();
-      const h = j.hourly;
-      if (!h || !h.time || !h.time.length) throw new Error('Open-Meteo 無此範圍資料');
+    let lastErr;
+    for (let n = 1; n <= ATTEMPTS; n++) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), TIMEOUT);
+      try {
+        const r = await fetch(BASE + '?' + q, { signal: ctl.signal });
+        // 4xx 是請求本身有問題（重試也一樣），直接放棄；5xx 與逾時才值得重試
+        if (r.status >= 400 && r.status < 500) throw fatal('Open-Meteo 請求被拒 ' + r.status);
+        if (!r.ok) throw new Error('Open-Meteo 伺服器錯誤 ' + r.status);
+        const j = await r.json();
+        const h = j.hourly;
+        if (!h || !h.time || !h.time.length) throw fatal('Open-Meteo 無此範圍資料');
 
-      const num = (v) => (v === null || v === undefined ? null : Number(v));
-      const out = {
-        times: h.time,
-        rain: (h.precipitation || []).map(num),
-        pop: (h.precipitation_probability || []).map(num),
-      };
-      cache.set(key, out);
-      return out;
-    } catch (e) {
-      if (e.name === 'AbortError') throw new Error('Open-Meteo 連線逾時');
-      throw e;
-    } finally { clearTimeout(timer); }
+        const num = (v) => (v === null || v === undefined ? null : Number(v));
+        const out = {
+          times: h.time,
+          rain: (h.precipitation || []).map(num),
+          pop: (h.precipitation_probability || []).map(num),
+        };
+        cache.set(key, out);
+        return out;
+      } catch (e) {
+        if (e.fatal) throw e;
+        lastErr = e.name === 'AbortError' ? new Error('Open-Meteo 連線逾時') : e;
+      } finally { clearTimeout(timer); }
+    }
+    throw new Error(lastErr.message + `（已重試 ${ATTEMPTS} 次）`);
   }
+
+  function fatal(msg) { const e = new Error(msg); e.fatal = true; return e; }
 
   return { hourly };
 })();
